@@ -49,8 +49,8 @@ export function useAppState(uid) {
     return () => { unsubSession(); unsubPlayers() }
   }, [SESSION_REF, PLAYERS_REF])
 
-  const updateConfig = async (courts, maxRoundsPerPlayer, maxPlayers) => {
-    await updateDoc(SESSION_REF, { config: computeConfig(courts, maxRoundsPerPlayer, maxPlayers) })
+  const updateConfig = async (courts, maxRoundsPerPlayer, maxPlayers, fullRoundPrice) => {
+    await updateDoc(SESSION_REF, { config: computeConfig(courts, maxRoundsPerPlayer, maxPlayers, fullRoundPrice) })
   }
 
   const addPlayer = async (name, skill) => {

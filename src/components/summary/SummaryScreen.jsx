@@ -1,4 +1,4 @@
-import { STATUS } from '../../models/index.js'
+import { STATUS, calcPlayerCost } from '../../models/index.js'
 import { useLang } from '../../context/LangContext.jsx'
 
 export default function SummaryScreen({ state }) {
@@ -6,13 +6,18 @@ export default function SummaryScreen({ state }) {
   const { players, session, resetSession } = state
 
   const activePlayers = players.filter(p => p.status !== STATUS.WAITING)
-  const totalRounds = session?.config?.totalRounds ?? 0
+  const maxRoundsPerPlayer = session?.config?.maxRoundsPerPlayer ?? 0
+  const fullRoundPrice = session?.config?.fullRoundPrice ?? 0
   const roundsPlayed = session?.currentRound ?? 0
   const avgRounds = activePlayers.length > 0
     ? (activePlayers.reduce((s, p) => s + p.roundsPlayed, 0) / activePlayers.length).toFixed(1)
     : '0'
   const mvp = [...activePlayers].sort((a, b) => b.roundsPlayed - a.roundsPlayed)[0]
   const sorted = [...players].sort((a, b) => b.roundsPlayed - a.roundsPlayed)
+
+  const totalCollect = fullRoundPrice > 0
+    ? sorted.reduce((sum, p) => sum + calcPlayerCost(p.roundsPlayed, fullRoundPrice, maxRoundsPerPlayer), 0)
+    : 0
 
   return (
     <div className="min-h-screen bg-stone-950 pb-24">
@@ -35,6 +40,35 @@ export default function SummaryScreen({ state }) {
           ))}
         </div>
 
+        {fullRoundPrice > 0 && (
+          <div className="bg-stone-900 rounded-xl p-4 space-y-3">
+            <div className="flex items-center justify-between">
+              <h2 className="text-white font-semibold text-sm uppercase tracking-wide">{t.payment}</h2>
+              <div className="text-right">
+                <span className="text-orange-400 font-bold text-lg">{totalCollect.toLocaleString()}</span>
+                <span className="text-stone-500 text-xs ml-1">{t.totalCollect}</span>
+              </div>
+            </div>
+            {sorted.filter(p => p.roundsPlayed > 0).map(p => {
+              const cost = calcPlayerCost(p.roundsPlayed, fullRoundPrice, maxRoundsPerPlayer)
+              const isFullRound = p.roundsPlayed >= maxRoundsPerPlayer
+              return (
+                <div key={p.id} className="flex items-center justify-between">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <span className="text-white text-sm truncate">{p.name}</span>
+                    {!isFullRound && (
+                      <span className="text-stone-500 text-xs shrink-0">{t.rounds(p.roundsPlayed)}</span>
+                    )}
+                  </div>
+                  <span className={`font-semibold text-sm shrink-0 ${isFullRound ? 'text-orange-400' : 'text-stone-300'}`}>
+                    {cost.toLocaleString()}
+                  </span>
+                </div>
+              )
+            })}
+          </div>
+        )}
+
         <div className="bg-stone-900 rounded-xl p-4 space-y-3">
           <h2 className="text-white font-semibold text-sm uppercase tracking-wide">{t.allPlayers}</h2>
           {sorted.map(p => (
@@ -43,7 +77,7 @@ export default function SummaryScreen({ state }) {
               <div className="flex-1 h-1.5 bg-stone-800 rounded-full overflow-hidden">
                 <div
                   className="h-full bg-orange-500 rounded-full transition-all"
-                  style={{ width: `${totalRounds ? Math.min(100, (p.roundsPlayed / totalRounds) * 100) : 0}%` }}
+                  style={{ width: `${maxRoundsPerPlayer ? Math.min(100, (p.roundsPlayed / maxRoundsPerPlayer) * 100) : 0}%` }}
                 />
               </div>
               <span className="text-stone-400 text-xs w-8 text-right shrink-0">{t.rounds(p.roundsPlayed)}</span>

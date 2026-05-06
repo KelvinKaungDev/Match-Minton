@@ -12,6 +12,8 @@ export const strings = {
     maxRounds: 'รอบสูงสุด / คน',
     maxPlayers: 'จำนวนผู้เล่นสูงสุด',
     playersPerMatch: 'ผู้เล่นต่อรอบ',
+    fullRoundPrice: 'ราคาเต็มรอบ',
+    pricePerRound: (n) => `${n} / รอบ`,
 
     // PlayerList
     playerCount: (n, max) => `ผู้เล่น (${n}/${max})`,
@@ -92,6 +94,8 @@ export const strings = {
     mvpLabel: (n) => `MVP (${n} รอบ)`,
     allPlayers: 'ผู้เล่นทั้งหมด',
     newSession: 'เซสชันใหม่',
+    payment: 'ค่าคอร์ท',
+    totalCollect: 'รวม',
   },
 
   en: {
@@ -107,6 +111,8 @@ export const strings = {
     maxRounds: 'Max Rounds / Player',
     maxPlayers: 'Max Players',
     playersPerMatch: 'Players per match',
+    fullRoundPrice: 'Full Round Price',
+    pricePerRound: (n) => `${n} / round`,
 
     // PlayerList
     playerCount: (n, max) => `Players (${n}/${max})`,
@@ -187,5 +193,7 @@ export const strings = {
     mvpLabel: (n) => `MVP (${n}r)`,
     allPlayers: 'All Players',
     newSession: 'New Session',
+    payment: 'Court Fee',
+    totalCollect: 'total',
   },
 }
