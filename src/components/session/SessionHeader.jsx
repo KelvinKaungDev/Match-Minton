@@ -1,10 +1,9 @@
-import RoundTimer from '../shared/RoundTimer.jsx'
 import { STATUS } from '../../models/index.js'
+import { useLang } from '../../context/LangContext.jsx'
+import LangToggle from '../shared/LangToggle.jsx'
 
-export default function SessionHeader({ session, players, timer }) {
-  const { currentRound, config } = session
-  const progress = Math.round((currentRound / config.totalRounds) * 100)
-
+export default function SessionHeader({ session, players }) {
+  const { t } = useLang()
   const counts = {
     playing: players.filter(p => p.status === STATUS.PLAYING).length,
     bench: players.filter(p => p.status === STATUS.BENCH).length,
@@ -13,28 +12,14 @@ export default function SessionHeader({ session, players, timer }) {
   }
 
   return (
-    <div className="bg-stone-900 px-4 py-3 space-y-2.5 border-b border-stone-800">
-      <div className="flex items-center justify-between">
-        <div>
-          <span className="text-white font-bold text-base">Round {currentRound}</span>
-          <span className="text-stone-500 text-sm"> / {config.totalRounds}</span>
-        </div>
-        <RoundTimer {...timer} />
-      </div>
-
-      <div className="h-1.5 bg-stone-800 rounded-full overflow-hidden">
-        <div
-          className="h-full bg-orange-500 rounded-full transition-all duration-500"
-          style={{ width: `${progress}%` }}
-        />
-      </div>
-
+    <div className="bg-stone-900 px-4 py-3 border-b border-stone-800 flex items-center justify-between">
       <div className="flex gap-4 text-xs">
-        <span className="text-orange-400">{counts.playing} playing</span>
-        <span className="text-sky-400">{counts.bench} bench</span>
-        <span className="text-yellow-400">{counts.waiting} waiting</span>
-        <span className="text-purple-400">{counts.done} done</span>
+        <span className="text-orange-400">{t.playing(counts.playing)}</span>
+        <span className="text-sky-400">{t.benchCount(counts.bench)}</span>
+        <span className="text-yellow-400">{t.waitingCount(counts.waiting)}</span>
+        <span className="text-purple-400">{t.doneCount(counts.done)}</span>
       </div>
+      <LangToggle inline />
     </div>
   )
 }

@@ -1,6 +1,8 @@
 import { SKILLS, STATUS } from '../../models/index.js'
+import { useLang } from '../../context/LangContext.jsx'
 
 export default function PlayerList({ players, maxPlayers = 36, onSkillChange, onToggle, onRemove, onMarkAllBench }) {
+  const { t } = useLang()
   const benchCount = players.filter(p => p.status === STATUS.BENCH).length
   const waitingCount = players.filter(p => p.status === STATUS.WAITING).length
 
@@ -8,25 +10,25 @@ export default function PlayerList({ players, maxPlayers = 36, onSkillChange, on
     <div className="bg-stone-900 rounded-xl p-4 space-y-2">
       <div className="flex items-center justify-between mb-1">
         <h2 className="text-white font-semibold text-sm uppercase tracking-wide">
-          Players ({players.length}/{maxPlayers})
+          {t.playerCount(players.length, maxPlayers)}
         </h2>
         <div className="flex items-center gap-2">
           <span className="text-xs text-stone-500">
-            {benchCount} bench · {waitingCount} waiting
+            {t.benchWaiting(benchCount, waitingCount)}
           </span>
           {waitingCount > 0 && (
             <button
               onClick={onMarkAllBench}
               className="text-xs px-2.5 py-1 bg-sky-500/20 text-sky-400 hover:bg-sky-500/30 rounded-lg transition-colors"
             >
-              All Arrived
+              {t.allArrived}
             </button>
           )}
         </div>
       </div>
 
       {players.length === 0 && (
-        <p className="text-stone-600 text-sm text-center py-6">No players added yet</p>
+        <p className="text-stone-600 text-sm text-center py-6">{t.noPlayers}</p>
       )}
 
       {players.map(player => (
@@ -39,7 +41,7 @@ export default function PlayerList({ players, maxPlayers = 36, onSkillChange, on
                 : 'bg-yellow-500/20 text-yellow-400 hover:bg-yellow-500/30'
             }`}
           >
-            {player.status === STATUS.BENCH ? 'Bench' : 'Waiting'}
+            {player.status === STATUS.BENCH ? t.bench : t.waiting}
           </button>
 
           <span className="text-white text-sm flex-1 truncate">{player.name}</span>

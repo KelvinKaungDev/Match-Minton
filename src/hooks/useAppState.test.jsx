@@ -46,10 +46,9 @@ vi.mock('firebase/firestore', () => {
 // ─── helpers ──────────────────────────────────────────────────────────────────
 
 const CONFIG = {
-  courts: 3, sessionHours: 2, roundMinutes: 15,
-  totalRounds: 8, playersPerRound: 12, maxRoundsPerPlayer: 4, maxPlayers: 36,
+  courts: 3, maxRoundsPerPlayer: 4, playersPerRound: 12, maxPlayers: 36,
 }
-const BASE_SESSION = { config: CONFIG, currentRound: 1, screen: 'session', courts: [], history: [] }
+const BASE_SESSION = { config: CONFIG, screen: 'session', courts: [], history: [] }
 
 function mkPlayer(id, overrides = {}) {
   return { id, name: `Player_${id}`, skill: 'B', status: STATUS.BENCH, roundsPlayed: 0, ...overrides }
@@ -332,19 +331,10 @@ describe('resetSession', () => {
 describe('updateConfig', () => {
   it('calls updateDoc with a recomputed config object', async () => {
     const result = await setup()
-    await result.current.updateConfig(4, 3, 40)
+    await result.current.updateConfig(4, 6, 40)
     expect(updateDoc).toHaveBeenCalledWith(
       expect.anything(),
-      expect.objectContaining({ config: expect.objectContaining({ courts: 4, sessionHours: 3, maxPlayers: 40 }) }),
-    )
-  })
-
-  it('falls back to current maxPlayers when none is provided', async () => {
-    const result = await setup()
-    await result.current.updateConfig(2, 2)
-    expect(updateDoc).toHaveBeenCalledWith(
-      expect.anything(),
-      expect.objectContaining({ config: expect.objectContaining({ maxPlayers: CONFIG.maxPlayers }) }),
+      expect.objectContaining({ config: expect.objectContaining({ courts: 4, maxRoundsPerPlayer: 6, maxPlayers: 40 }) }),
     )
   })
 })

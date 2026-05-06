@@ -1,6 +1,8 @@
 import { STATUS } from '../../models/index.js'
+import { useLang } from '../../context/LangContext.jsx'
 
 export default function SummaryScreen({ state }) {
+  const { t } = useLang()
   const { players, session, resetSession } = state
 
   const activePlayers = players.filter(p => p.status !== STATUS.WAITING)
@@ -15,14 +17,14 @@ export default function SummaryScreen({ state }) {
   return (
     <div className="min-h-screen bg-stone-950 pb-24">
       <div className="max-w-lg mx-auto px-4 py-6 space-y-4">
-        <h1 className="text-orange-400 font-bold text-2xl tracking-tight">Session Summary</h1>
+        <h1 className="text-orange-400 font-bold text-2xl tracking-tight">{t.sessionSummary}</h1>
 
         <div className="grid grid-cols-2 gap-3">
           {[
-            { value: roundsPlayed, label: 'Rounds Played' },
-            { value: players.length, label: 'Total Players' },
-            { value: avgRounds, label: 'Avg Rounds' },
-            { value: mvp?.name ?? '—', label: `MVP (${mvp?.roundsPlayed ?? 0}r)`, accent: true },
+            { value: roundsPlayed, label: t.roundsPlayed },
+            { value: players.length, label: t.totalPlayers },
+            { value: avgRounds, label: t.avgRounds },
+            { value: mvp?.name ?? '—', label: t.mvpLabel(mvp?.roundsPlayed ?? 0), accent: true },
           ].map(({ value, label, accent }) => (
             <div key={label} className="bg-stone-900 rounded-xl p-4 text-center">
               <div className={`font-bold text-xl truncate ${accent ? 'text-orange-400' : 'text-white'}`}>
@@ -34,7 +36,7 @@ export default function SummaryScreen({ state }) {
         </div>
 
         <div className="bg-stone-900 rounded-xl p-4 space-y-3">
-          <h2 className="text-white font-semibold text-sm uppercase tracking-wide">All Players</h2>
+          <h2 className="text-white font-semibold text-sm uppercase tracking-wide">{t.allPlayers}</h2>
           {sorted.map(p => (
             <div key={p.id} className="flex items-center gap-3">
               <span className="text-white text-sm w-28 truncate shrink-0">{p.name}</span>
@@ -44,7 +46,7 @@ export default function SummaryScreen({ state }) {
                   style={{ width: `${totalRounds ? Math.min(100, (p.roundsPlayed / totalRounds) * 100) : 0}%` }}
                 />
               </div>
-              <span className="text-stone-400 text-xs w-6 text-right shrink-0">{p.roundsPlayed}r</span>
+              <span className="text-stone-400 text-xs w-8 text-right shrink-0">{t.rounds(p.roundsPlayed)}</span>
             </div>
           ))}
         </div>
@@ -55,7 +57,7 @@ export default function SummaryScreen({ state }) {
           onClick={resetSession}
           className="w-full bg-orange-600 hover:bg-orange-500 text-white font-semibold rounded-xl py-3.5 transition-colors"
         >
-          New Session
+          {t.newSession}
         </button>
       </div>
     </div>

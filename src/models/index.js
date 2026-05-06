@@ -9,13 +9,10 @@ export const STATUS = {
 export const SKILL = { S: 'S', A: 'A', B: 'B', C: 'C' }
 export const SKILLS = ['S', 'A', 'B', 'C']
 
-export const DEFAULT_CONFIG = { courts: 5, sessionHours: 3, roundMinutes: 15, maxPlayers: 36 }
+export const DEFAULT_CONFIG = { courts: 5, maxRoundsPerPlayer: 6, maxPlayers: 36 }
 
-export function computeConfig(courts, sessionHours, roundMinutes = 15, maxPlayers = 36) {
-  const totalRounds = Math.floor((sessionHours * 60) / roundMinutes)
-  const playersPerRound = courts * 4
-  const maxRoundsPerPlayer = Math.floor(totalRounds / 2)
-  return { courts, sessionHours, roundMinutes, totalRounds, playersPerRound, maxRoundsPerPlayer, maxPlayers }
+export function computeConfig(courts, maxRoundsPerPlayer = 6, maxPlayers = 36) {
+  return { courts, maxRoundsPerPlayer, playersPerRound: courts * 4, maxPlayers }
 }
 
 export function createPlayer(name, skill = SKILL.B) {

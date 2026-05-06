@@ -3,8 +3,7 @@ import { computeConfig, createPlayer, DEFAULT_CONFIG, STATUS, SKILL, SKILLS } fr
 
 describe('DEFAULT_CONFIG', () => {
   it('has 5 courts', () => expect(DEFAULT_CONFIG.courts).toBe(5))
-  it('has 3 session hours', () => expect(DEFAULT_CONFIG.sessionHours).toBe(3))
-  it('has 15 round minutes', () => expect(DEFAULT_CONFIG.roundMinutes).toBe(15))
+  it('has 6 maxRoundsPerPlayer', () => expect(DEFAULT_CONFIG.maxRoundsPerPlayer).toBe(6))
   it('has 36 max players', () => expect(DEFAULT_CONFIG.maxPlayers).toBe(36))
 })
 
@@ -32,52 +31,36 @@ describe('SKILLS / SKILL', () => {
 })
 
 describe('computeConfig', () => {
-  it('calculates totalRounds as floor((hours * 60) / roundMinutes)', () => {
-    expect(computeConfig(5, 3).totalRounds).toBe(12)   // 180 / 15
-    expect(computeConfig(3, 2).totalRounds).toBe(8)    // 120 / 15
-    expect(computeConfig(1, 1).totalRounds).toBe(4)    // 60  / 15
-  })
-
   it('calculates playersPerRound as courts * 4', () => {
-    expect(computeConfig(5, 3).playersPerRound).toBe(20)
-    expect(computeConfig(1, 3).playersPerRound).toBe(4)
-    expect(computeConfig(10, 3).playersPerRound).toBe(40)
+    expect(computeConfig(5, 6).playersPerRound).toBe(20)
+    expect(computeConfig(1, 6).playersPerRound).toBe(4)
+    expect(computeConfig(10, 6).playersPerRound).toBe(40)
   })
 
-  it('calculates maxRoundsPerPlayer as floor(totalRounds / 2)', () => {
-    expect(computeConfig(5, 3).maxRoundsPerPlayer).toBe(6)   // floor(12 / 2)
-    expect(computeConfig(3, 2).maxRoundsPerPlayer).toBe(4)   // floor(8  / 2)
-    expect(computeConfig(1, 1).maxRoundsPerPlayer).toBe(2)   // floor(4  / 2)
-  })
-
-  it('respects a custom roundMinutes value', () => {
-    expect(computeConfig(5, 1, 20).totalRounds).toBe(3)   // floor(60 / 20)
-    expect(computeConfig(5, 1, 10).totalRounds).toBe(6)   // floor(60 / 10)
+  it('passes through maxRoundsPerPlayer directly', () => {
+    expect(computeConfig(5, 6).maxRoundsPerPlayer).toBe(6)
+    expect(computeConfig(5, 3).maxRoundsPerPlayer).toBe(3)
+    expect(computeConfig(5, 10).maxRoundsPerPlayer).toBe(10)
   })
 
   it('defaults maxPlayers to 36', () => {
-    expect(computeConfig(5, 3).maxPlayers).toBe(36)
+    expect(computeConfig(5, 6).maxPlayers).toBe(36)
   })
 
   it('accepts and passes through a custom maxPlayers', () => {
-    expect(computeConfig(5, 3, 15, 50).maxPlayers).toBe(50)
-    expect(computeConfig(5, 3, 15, 100).maxPlayers).toBe(100)
+    expect(computeConfig(5, 6, 50).maxPlayers).toBe(50)
+    expect(computeConfig(5, 6, 100).maxPlayers).toBe(100)
   })
 
-  it('passes through courts and sessionHours unchanged', () => {
-    const cfg = computeConfig(7, 4)
-    expect(cfg.courts).toBe(7)
-    expect(cfg.sessionHours).toBe(4)
+  it('passes through courts unchanged', () => {
+    expect(computeConfig(7, 6).courts).toBe(7)
   })
 
   it('returns an object with all expected fields', () => {
-    expect(computeConfig(3, 2, 15, 24)).toEqual({
+    expect(computeConfig(3, 4, 24)).toEqual({
       courts: 3,
-      sessionHours: 2,
-      roundMinutes: 15,
-      totalRounds: 8,
-      playersPerRound: 12,
       maxRoundsPerPlayer: 4,
+      playersPerRound: 12,
       maxPlayers: 24,
     })
   })

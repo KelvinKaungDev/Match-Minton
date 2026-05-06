@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import {
   doc, collection, onSnapshot, setDoc, updateDoc,
   deleteDoc, writeBatch, getDoc, arrayUnion,
@@ -7,18 +7,17 @@ import { db } from '../services/firebase.js'
 import { createPlayer, computeConfig, DEFAULT_CONFIG, STATUS } from '../models/index.js'
 import { generateRound, findBestSub } from '../services/matching.js'
 
-const SESSION_REF = doc(db, 'session', 'current')
-const PLAYERS_REF = collection(db, 'players')
-
 const DEFAULT_SESSION = {
-  config: computeConfig(DEFAULT_CONFIG.courts, DEFAULT_CONFIG.sessionHours),
-  currentRound: 0,
+  config: computeConfig(DEFAULT_CONFIG.courts, DEFAULT_CONFIG.maxRoundsPerPlayer, DEFAULT_CONFIG.maxPlayers),
   screen: 'setup',
   courts: [],
   history: [],
 }
 
-export function useAppState() {
+export function useAppState(uid) {
+  const SESSION_REF = useMemo(() => doc(db, 'users', uid, 'session', 'current'), [uid])
+  const PLAYERS_REF = useMemo(() => collection(db, 'users', uid, 'players'), [uid])
+
   const [players, setPlayers] = useState([])
   const [session, setSession] = useState(null)
   const [loading, setLoading] = useState(true)
@@ -48,11 +47,10 @@ export function useAppState() {
     )
 
     return () => { unsubSession(); unsubPlayers() }
-  }, [])
+  }, [SESSION_REF, PLAYERS_REF])
 
-  const updateConfig = async (courts, sessionHours, maxPlayers) => {
-    const mp = maxPlayers ?? session?.config?.maxPlayers ?? DEFAULT_CONFIG.maxPlayers
-    await updateDoc(SESSION_REF, { config: computeConfig(courts, sessionHours, 15, mp) })
+  const updateConfig = async (courts, maxRoundsPerPlayer, maxPlayers) => {
+    await updateDoc(SESSION_REF, { config: computeConfig(courts, maxRoundsPerPlayer, maxPlayers) })
   }
 
   const addPlayer = async (name, skill) => {
@@ -116,7 +114,6 @@ export function useAppState() {
       batch.update(doc(db, 'players', p.id), { status: STATUS.PLAYING, roundsPlayed: p.roundsPlayed + 1 })
     }
     batch.update(SESSION_REF, {
-      currentRound: 1,
       screen: 'session',
       history: [],
       courts: courts.map(c => ({
@@ -128,47 +125,45 @@ export function useAppState() {
     await batch.commit()
   }
 
-  const nextRound = async () => {
+  const completeCourt = async (courtId) => {
     if (!session) return
-    const { currentRound, config } = session
-
-    // Snapshot current round courts into history (store names+skills for display)
-    const historyEntry = {
-      round: currentRound,
-      courts: (session.courts ?? []).map(c => ({
-        id: c.id,
-        teamA: c.teamA.map(id => { const p = players.find(pl => pl.id === id); return p ? { name: p.name, skill: p.skill } : null }).filter(Boolean),
-        teamB: c.teamB.map(id => { const p = players.find(pl => pl.id === id); return p ? { name: p.name, skill: p.skill } : null }).filter(Boolean),
-      })),
-    }
-
-    if (currentRound >= config.totalRounds) {
-      await updateDoc(SESSION_REF, { screen: 'summary', history: arrayUnion(historyEntry) })
-      return
-    }
-
-    const prevPlaying = players.filter(p => p.status === STATUS.PLAYING)
-    const updatedPlayers = players.map(p => {
-      if (p.status !== STATUS.PLAYING) return p
-      return { ...p, status: p.roundsPlayed >= config.maxRoundsPerPlayer ? STATUS.DONE : STATUS.BENCH }
-    })
-    const { courts, playing } = generateRound(updatedPlayers, config.courts)
+    const court = session.courts.find(c => c.id === courtId)
+    if (!court) return
+    const allIds = [...court.teamA, ...court.teamB]
     const batch = writeBatch(db)
-    for (const p of prevPlaying) {
-      const updated = updatedPlayers.find(u => u.id === p.id)
-      batch.update(doc(db, 'players', p.id), { status: updated.status })
+    for (const id of allIds) {
+      const player = players.find(p => p.id === id)
+      if (!player) continue
+      const status = player.roundsPlayed >= session.config.maxRoundsPerPlayer ? STATUS.DONE : STATUS.BENCH
+      batch.update(doc(db, 'players', id), { status })
     }
+    const matchEntry = {
+      matchNo: (session.history ?? []).length + 1,
+      court: {
+        id: courtId,
+        teamA: court.teamA.map(id => { const p = players.find(pl => pl.id === id); return p ? { name: p.name, skill: p.skill } : null }).filter(Boolean),
+        teamB: court.teamB.map(id => { const p = players.find(pl => pl.id === id); return p ? { name: p.name, skill: p.skill } : null }).filter(Boolean),
+      },
+    }
+    const newCourts = session.courts.map(c =>
+      c.id === courtId ? { id: courtId, teamA: [], teamB: [] } : c
+    )
+    batch.update(SESSION_REF, { courts: newCourts, history: arrayUnion(matchEntry) })
+    await batch.commit()
+  }
+
+  const refillCourt = async (courtId) => {
+    if (!session) return
+    const bench = players.filter(p => p.status === STATUS.BENCH)
+    if (bench.length < 4) return
+    const { courts: [newCourt], playing } = generateRound(bench, 1)
+    const filledCourt = { id: courtId, teamA: newCourt.teamA.map(p => p.id), teamB: newCourt.teamB.map(p => p.id) }
+    const batch = writeBatch(db)
     for (const p of playing) {
       batch.update(doc(db, 'players', p.id), { status: STATUS.PLAYING, roundsPlayed: p.roundsPlayed + 1 })
     }
     batch.update(SESSION_REF, {
-      currentRound: currentRound + 1,
-      history: arrayUnion(historyEntry),
-      courts: courts.map(c => ({
-        id: c.id,
-        teamA: c.teamA.map(p => p.id),
-        teamB: c.teamB.map(p => p.id),
-      })),
+      courts: session.courts.map(c => c.id === courtId ? filledCourt : c),
     })
     await batch.commit()
   }
@@ -182,30 +177,17 @@ export function useAppState() {
     const bench = players.filter(p => p.status === STATUS.BENCH)
     if (bench.length < 4) return
 
-    // Generate courts using only bench players, only fill empty slots
     const { courts: newCourts, playing } = generateRound(bench, emptyCourts)
-
-    // Renumber so new court IDs continue from the last active court
-    const renumbered = newCourts.map((c, i) => ({
-      ...c,
-      id: activeCourts + i + 1,
-    }))
+    const renumbered = newCourts.map((c, i) => ({ ...c, id: activeCourts + i + 1 }))
 
     const batch = writeBatch(db)
     for (const p of playing) {
-      batch.update(doc(db, 'players', p.id), {
-        status: STATUS.PLAYING,
-        roundsPlayed: p.roundsPlayed + 1,
-      })
+      batch.update(doc(db, 'players', p.id), { status: STATUS.PLAYING, roundsPlayed: p.roundsPlayed + 1 })
     }
     batch.update(SESSION_REF, {
       courts: [
         ...session.courts,
-        ...renumbered.map(c => ({
-          id: c.id,
-          teamA: c.teamA.map(p => p.id),
-          teamB: c.teamB.map(p => p.id),
-        })),
+        ...renumbered.map(c => ({ id: c.id, teamA: c.teamA.map(p => p.id), teamB: c.teamB.map(p => p.id) })),
       ],
     })
     await batch.commit()
@@ -240,6 +222,18 @@ export function useAppState() {
     await batch.commit()
   }
 
+  const addWalkIn = async (name, skill) => {
+    if (players.some(p => p.name.toLowerCase() === name.toLowerCase())) return { error: 'duplicate' }
+    const maxPlayers = session?.config?.maxPlayers ?? DEFAULT_CONFIG.maxPlayers
+    if (players.length >= maxPlayers) return { error: 'max' }
+    const player = createPlayer(name, skill)
+    await setDoc(doc(db, 'players', player.id), {
+      name: player.name, skill: player.skill,
+      status: STATUS.BENCH, roundsPlayed: 0,
+    })
+    return { success: true }
+  }
+
   const activatePlayer = async (id) => updateDoc(doc(db, 'players', id), { status: STATUS.BENCH })
 
   const volunteerMore = async (id) => updateDoc(doc(db, 'players', id), { status: STATUS.BENCH })
@@ -263,8 +257,9 @@ export function useAppState() {
     players, session, courts, loading,
     updateConfig, addPlayer, addPlayers, removePlayer,
     updatePlayerSkill, togglePlayerStatus, markAllBench,
-    startSession, nextRound, fillEmptyCourts, markLeave,
-    activatePlayer, volunteerMore,
+    startSession, fillEmptyCourts, markLeave,
+    completeCourt, refillCourt,
+    activatePlayer, volunteerMore, addWalkIn,
     endSession, resetSession,
   }
 }

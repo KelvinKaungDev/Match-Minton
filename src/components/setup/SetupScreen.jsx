@@ -2,8 +2,10 @@ import SessionConfig from './SessionConfig.jsx'
 import AddPlayer from './AddPlayer.jsx'
 import PlayerList from './PlayerList.jsx'
 import { STATUS } from '../../models/index.js'
+import { useLang } from '../../context/LangContext.jsx'
 
 export default function SetupScreen({ state }) {
+  const { t } = useLang()
   const {
     players, session,
     updateConfig, addPlayer, addPlayers,
@@ -45,9 +47,7 @@ export default function SetupScreen({ state }) {
           disabled={!canStart}
           className="w-full bg-orange-600 hover:bg-orange-500 disabled:bg-stone-800 disabled:text-stone-600 text-white font-semibold rounded-xl py-3.5 transition-colors"
         >
-          {canStart
-            ? `Start Session — ${bench.length} players ready`
-            : `Need ≥4 bench players (${bench.length}/4)`}
+          {canStart ? t.startReady(bench.length) : t.needPlayers(bench.length)}
         </button>
       </div>
     </div>

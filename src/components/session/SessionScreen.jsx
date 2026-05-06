@@ -4,54 +4,55 @@ import CourtsTab from './CourtsTab.jsx'
 import BenchTab from './BenchTab.jsx'
 import WaitingTab from './WaitingTab.jsx'
 import DoneTab from './DoneTab.jsx'
-import { useTimer } from '../../hooks/useTimer.js'
+import { useLang } from '../../context/LangContext.jsx'
 
-const TABS = ['Courts', 'Bench', 'Waiting', 'Done']
+const TAB_KEYS = ['courts', 'bench', 'waiting', 'done']
 
 export default function SessionScreen({ state }) {
-  const { players, session, courts, markLeave, activatePlayer, volunteerMore, nextRound, fillEmptyCourts, endSession } = state
-  const [tab, setTab] = useState('Courts')
-  const timer = useTimer((session?.config?.roundMinutes ?? 15) * 60)
+  const { t } = useLang()
+  const { players, session, courts, markLeave, activatePlayer, volunteerMore, fillEmptyCourts, completeCourt, refillCourt, addWalkIn, endSession } = state
+  const [tabKey, setTabKey] = useState('courts')
 
   if (!session) return null
 
+  const TAB_LABELS = {
+    courts: t.tabCourts,
+    bench: t.tabBench,
+    waiting: t.tabWaiting,
+    done: t.tabDone,
+  }
+
   return (
-    <div className="min-h-screen bg-stone-950 pb-28">
-      <SessionHeader session={session} players={players} timer={timer} />
+    <div className="min-h-screen bg-stone-950 pb-20">
+      <SessionHeader session={session} players={players} />
 
       <div className="flex border-b border-stone-800 bg-stone-950 sticky top-0 z-10">
-        {TABS.map(t => (
+        {TAB_KEYS.map(key => (
           <button
-            key={t}
-            onClick={() => setTab(t)}
+            key={key}
+            onClick={() => setTabKey(key)}
             className={`flex-1 py-3 text-sm font-medium transition-colors ${
-              tab === t
+              tabKey === key
                 ? 'text-orange-400 border-b-2 border-orange-400'
                 : 'text-stone-500 hover:text-stone-300'
             }`}
           >
-            {t}
+            {TAB_LABELS[key]}
           </button>
         ))}
       </div>
 
-      {tab === 'Courts' && <CourtsTab courts={courts} onLeave={markLeave} history={session.history ?? []} />}
-      {tab === 'Bench' && <BenchTab players={players} session={session} onLeave={markLeave} onFillCourts={fillEmptyCourts} />}
-      {tab === 'Waiting' && <WaitingTab players={players} onActivate={activatePlayer} />}
-      {tab === 'Done' && <DoneTab players={players} onVolunteer={volunteerMore} />}
+      {tabKey === 'courts' && <CourtsTab courts={courts} onLeave={markLeave} onComplete={completeCourt} onRefill={refillCourt} players={players} history={session.history ?? []} />}
+      {tabKey === 'bench' && <BenchTab players={players} session={session} onLeave={markLeave} onFillCourts={fillEmptyCourts} onWalkIn={addWalkIn} />}
+      {tabKey === 'waiting' && <WaitingTab players={players} onActivate={activatePlayer} />}
+      {tabKey === 'done' && <DoneTab players={players} onVolunteer={volunteerMore} />}
 
-      <div className="fixed bottom-0 left-0 right-0 bg-stone-950/95 backdrop-blur border-t border-stone-800 px-4 py-3 flex gap-3">
+      <div className="fixed bottom-0 left-0 right-0 bg-stone-950/95 backdrop-blur border-t border-stone-800 px-4 py-3">
         <button
           onClick={endSession}
-          className="px-4 py-2.5 bg-stone-800 hover:bg-stone-700 text-stone-300 rounded-xl text-sm font-medium transition-colors"
+          className="w-full py-2.5 bg-stone-800 hover:bg-stone-700 text-stone-300 rounded-xl text-sm font-medium transition-colors"
         >
-          End Early
-        </button>
-        <button
-          onClick={nextRound}
-          className="flex-1 bg-orange-600 hover:bg-orange-500 text-white font-semibold rounded-xl py-2.5 transition-colors"
-        >
-          Next Round →
+          {t.endSession}
         </button>
       </div>
     </div>
