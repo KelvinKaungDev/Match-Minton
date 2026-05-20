@@ -38,7 +38,7 @@ function SkillPicker({ value, onChange }) {
           type="button"
           onClick={() => onChange(s)}
           className={`flex-1 py-1.5 rounded-lg text-sm font-bold transition-colors ${
-            value === s ? 'bg-orange-600 text-white' : 'bg-stone-800 text-stone-400 hover:bg-stone-700'
+            value === s ? 'bg-[#34d399] text-[#0f1923]' : 'bg-stone-800 text-stone-400 hover:bg-stone-700'
           }`}
         >
           {s}
@@ -97,13 +97,13 @@ export default function AddPlayer({ onAdd, onAddBulk, maxPlayers = 36 }) {
         <div className="flex rounded-lg overflow-hidden border border-stone-700">
           <button
             onClick={() => setMode('single')}
-            className={`px-3 py-1 text-xs font-medium transition-colors ${mode === 'single' ? 'bg-orange-600 text-white' : 'text-stone-400 hover:text-white'}`}
+            className={`px-3 py-1 text-xs font-medium transition-colors ${mode === 'single' ? 'bg-[#34d399] text-[#0f1923]' : 'text-stone-400 hover:text-white'}`}
           >
             {t.single}
           </button>
           <button
             onClick={() => setMode('bulk')}
-            className={`px-3 py-1 text-xs font-medium transition-colors ${mode === 'bulk' ? 'bg-orange-600 text-white' : 'text-stone-400 hover:text-white'}`}
+            className={`px-3 py-1 text-xs font-medium transition-colors ${mode === 'bulk' ? 'bg-[#34d399] text-[#0f1923]' : 'text-stone-400 hover:text-white'}`}
           >
             {t.bulk}
           </button>
@@ -116,13 +116,13 @@ export default function AddPlayer({ onAdd, onAddBulk, maxPlayers = 36 }) {
             value={name}
             onChange={e => { setName(e.target.value); setError('') }}
             placeholder={t.playerName}
-            className="w-full bg-stone-800 rounded-lg px-3 py-2.5 text-white placeholder-stone-500 text-sm outline-none focus:ring-2 focus:ring-orange-500"
+            className="w-full bg-stone-800 rounded-lg px-3 py-2.5 text-white placeholder-stone-500 text-sm outline-none focus:ring-2 focus:ring-[#34d399]"
           />
           <SkillPicker value={skill} onChange={setSkill} />
           {error && <p className="text-red-400 text-xs">{error}</p>}
           <button
             type="submit"
-            className="w-full bg-orange-600 hover:bg-orange-500 text-white rounded-lg py-2.5 text-sm font-semibold transition-colors"
+            className="w-full bg-[#34d399] hover:bg-[#6ee7b7] text-[#0f1923] rounded-lg py-2.5 text-sm font-semibold transition-colors"
           >
             {t.addPlayer}
           </button>
@@ -134,7 +134,7 @@ export default function AddPlayer({ onAdd, onAddBulk, maxPlayers = 36 }) {
             onChange={handleBulkTextChange}
             placeholder={t.bulkPlaceholder}
             rows={7}
-            className="w-full bg-stone-800 rounded-lg px-3 py-2.5 text-white placeholder-stone-500 text-sm outline-none focus:ring-2 focus:ring-orange-500 resize-none"
+            className="w-full bg-stone-800 rounded-lg px-3 py-2.5 text-white placeholder-stone-500 text-sm outline-none focus:ring-2 focus:ring-[#34d399] resize-none"
           />
 
           {bulkText.length > 0 && editableNames.length === 0 && (
@@ -143,7 +143,7 @@ export default function AddPlayer({ onAdd, onAddBulk, maxPlayers = 36 }) {
 
           {editableNames.length > 0 && (
             <div className="bg-stone-800 rounded-lg px-3 py-2 space-y-2">
-              <p className="text-orange-400 text-xs font-medium">
+              <p className="text-[#34d399] text-xs font-medium">
                 {t.bulkFound(editableNames.length)}
               </p>
               <div className="space-y-1.5 max-h-48 overflow-y-auto pr-1">
@@ -153,7 +153,7 @@ export default function AddPlayer({ onAdd, onAddBulk, maxPlayers = 36 }) {
                     <input
                       value={n}
                       onChange={e => handleNameChange(i, e.target.value)}
-                      className="flex-1 bg-stone-700 rounded px-2 py-1 text-white text-xs outline-none focus:ring-1 focus:ring-orange-500"
+                      className="flex-1 bg-stone-700 rounded px-2 py-1 text-white text-xs outline-none focus:ring-1 focus:ring-[#34d399]"
                     />
                     <button
                       type="button"
@@ -172,7 +172,7 @@ export default function AddPlayer({ onAdd, onAddBulk, maxPlayers = 36 }) {
           <button
             onClick={handleBulk}
             disabled={editableNames.length === 0}
-            className="w-full bg-orange-600 hover:bg-orange-500 disabled:bg-stone-800 disabled:text-stone-600 text-white rounded-lg py-2.5 text-sm font-semibold transition-colors"
+            className="w-full bg-[#34d399] hover:bg-[#6ee7b7] disabled:bg-stone-800 disabled:text-stone-600 text-[#0f1923] rounded-lg py-2.5 text-sm font-semibold transition-colors"
           >
             {editableNames.length > 0 ? t.importCount(editableNames.length) : t.importBtn}
           </button>

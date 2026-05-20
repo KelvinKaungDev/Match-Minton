@@ -58,7 +58,7 @@ export function useAppState(uid) {
     const maxPlayers = session?.config?.maxPlayers ?? DEFAULT_CONFIG.maxPlayers
     if (players.length >= maxPlayers) return { error: 'max' }
     const player = createPlayer(name, skill)
-    await setDoc(doc(db, 'players', player.id), {
+    await setDoc(doc(PLAYERS_REF, player.id), {
       name: player.name, skill: player.skill,
       status: player.status, roundsPlayed: player.roundsPlayed,
     })
@@ -74,7 +74,7 @@ export function useAppState(uid) {
     const batch = writeBatch(db)
     for (const name of toAdd) {
       const player = createPlayer(name, skill)
-      batch.set(doc(db, 'players', player.id), {
+      batch.set(doc(PLAYERS_REF, player.id), {
         name: player.name, skill: player.skill,
         status: player.status, roundsPlayed: player.roundsPlayed,
       })
@@ -83,15 +83,15 @@ export function useAppState(uid) {
     return toAdd.length
   }
 
-  const removePlayer = async (id) => deleteDoc(doc(db, 'players', id))
+  const removePlayer = async (id) => deleteDoc(doc(PLAYERS_REF, id))
 
-  const updatePlayerSkill = async (id, skill) => updateDoc(doc(db, 'players', id), { skill })
+  const updatePlayerSkill = async (id, skill) => updateDoc(doc(PLAYERS_REF, id), { skill })
 
   const togglePlayerStatus = async (id) => {
     const player = players.find(p => p.id === id)
     if (!player) return
     const status = player.status === STATUS.WAITING ? STATUS.BENCH : STATUS.WAITING
-    await updateDoc(doc(db, 'players', id), { status })
+    await updateDoc(doc(PLAYERS_REF, id), { status })
   }
 
   const markAllBench = async () => {
@@ -99,7 +99,7 @@ export function useAppState(uid) {
     if (waiting.length === 0) return
     const batch = writeBatch(db)
     for (const p of waiting) {
-      batch.update(doc(db, 'players', p.id), { status: STATUS.BENCH })
+      batch.update(doc(PLAYERS_REF, p.id), { status: STATUS.BENCH })
     }
     await batch.commit()
   }
@@ -111,7 +111,7 @@ export function useAppState(uid) {
     const { courts, playing } = generateRound(players, session.config.courts)
     const batch = writeBatch(db)
     for (const p of playing) {
-      batch.update(doc(db, 'players', p.id), { status: STATUS.PLAYING, roundsPlayed: p.roundsPlayed + 1 })
+      batch.update(doc(PLAYERS_REF, p.id), { status: STATUS.PLAYING, roundsPlayed: p.roundsPlayed + 1 })
     }
     batch.update(SESSION_REF, {
       screen: 'session',
@@ -135,7 +135,7 @@ export function useAppState(uid) {
       const player = players.find(p => p.id === id)
       if (!player) continue
       const status = player.roundsPlayed >= session.config.maxRoundsPerPlayer ? STATUS.DONE : STATUS.BENCH
-      batch.update(doc(db, 'players', id), { status })
+      batch.update(doc(PLAYERS_REF, id), { status })
     }
     const matchEntry = {
       matchNo: (session.history ?? []).length + 1,
@@ -160,7 +160,7 @@ export function useAppState(uid) {
     const filledCourt = { id: courtId, teamA: newCourt.teamA.map(p => p.id), teamB: newCourt.teamB.map(p => p.id) }
     const batch = writeBatch(db)
     for (const p of playing) {
-      batch.update(doc(db, 'players', p.id), { status: STATUS.PLAYING, roundsPlayed: p.roundsPlayed + 1 })
+      batch.update(doc(PLAYERS_REF, p.id), { status: STATUS.PLAYING, roundsPlayed: p.roundsPlayed + 1 })
     }
     batch.update(SESSION_REF, {
       courts: session.courts.map(c => c.id === courtId ? filledCourt : c),
@@ -182,7 +182,7 @@ export function useAppState(uid) {
 
     const batch = writeBatch(db)
     for (const p of playing) {
-      batch.update(doc(db, 'players', p.id), { status: STATUS.PLAYING, roundsPlayed: p.roundsPlayed + 1 })
+      batch.update(doc(PLAYERS_REF, p.id), { status: STATUS.PLAYING, roundsPlayed: p.roundsPlayed + 1 })
     }
     batch.update(SESSION_REF, {
       courts: [
@@ -197,11 +197,11 @@ export function useAppState(uid) {
     const player = players.find(p => p.id === id)
     if (!player) return
     const batch = writeBatch(db)
-    batch.update(doc(db, 'players', id), { status: STATUS.LEAVE })
+    batch.update(doc(PLAYERS_REF, id), { status: STATUS.LEAVE })
     if (player.status === STATUS.PLAYING && session) {
       const sub = findBestSub(players.filter(p => p.id !== id))
       if (sub) {
-        batch.update(doc(db, 'players', sub.id), {
+        batch.update(doc(PLAYERS_REF, sub.id), {
           status: STATUS.PLAYING, roundsPlayed: sub.roundsPlayed + 1,
         })
         const newCourts = session.courts.map(c => ({
@@ -227,22 +227,22 @@ export function useAppState(uid) {
     const maxPlayers = session?.config?.maxPlayers ?? DEFAULT_CONFIG.maxPlayers
     if (players.length >= maxPlayers) return { error: 'max' }
     const player = createPlayer(name, skill)
-    await setDoc(doc(db, 'players', player.id), {
+    await setDoc(doc(PLAYERS_REF, player.id), {
       name: player.name, skill: player.skill,
       status: STATUS.BENCH, roundsPlayed: 0,
     })
     return { success: true }
   }
 
-  const activatePlayer = async (id) => updateDoc(doc(db, 'players', id), { status: STATUS.BENCH })
+  const activatePlayer = async (id) => updateDoc(doc(PLAYERS_REF, id), { status: STATUS.BENCH })
 
-  const volunteerMore = async (id) => updateDoc(doc(db, 'players', id), { status: STATUS.BENCH })
+  const volunteerMore = async (id) => updateDoc(doc(PLAYERS_REF, id), { status: STATUS.BENCH })
 
   const endSession = async () => updateDoc(SESSION_REF, { screen: 'summary' })
 
   const resetSession = async () => {
     const batch = writeBatch(db)
-    for (const p of players) batch.delete(doc(db, 'players', p.id))
+    for (const p of players) batch.delete(doc(PLAYERS_REF, p.id))
     batch.set(SESSION_REF, DEFAULT_SESSION)
     await batch.commit()
   }

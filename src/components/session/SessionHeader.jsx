@@ -1,6 +1,5 @@
 import { STATUS } from '../../models/index.js'
 import { useLang } from '../../context/LangContext.jsx'
-import LangToggle from '../shared/LangToggle.jsx'
 
 export default function SessionHeader({ session, players }) {
   const { t } = useLang()
@@ -12,14 +11,11 @@ export default function SessionHeader({ session, players }) {
   }
 
   return (
-    <div className="bg-stone-900 px-4 py-3 border-b border-stone-800 flex items-center justify-between">
-      <div className="flex gap-4 text-xs">
-        <span className="text-orange-400">{t.playing(counts.playing)}</span>
-        <span className="text-sky-400">{t.benchCount(counts.bench)}</span>
-        <span className="text-yellow-400">{t.waitingCount(counts.waiting)}</span>
-        <span className="text-purple-400">{t.doneCount(counts.done)}</span>
-      </div>
-      <LangToggle inline />
+    <div className="bg-stone-900 px-4 py-3 border-b border-stone-800 flex items-center gap-4 text-xs">
+      <span className="text-[#34d399]">{t.playing(counts.playing)}</span>
+      <span className="text-sky-400">{t.benchCount(counts.bench)}</span>
+      <span className="text-yellow-400">{t.waitingCount(counts.waiting)}</span>
+      <span className="text-purple-400">{t.doneCount(counts.done)}</span>
     </div>
   )
 }

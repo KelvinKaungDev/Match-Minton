@@ -9,3 +9,37 @@ body {
   background: #0c0a09;
   -webkit-font-smoothing: antialiased;
 }
+
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-12px); }
+}
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(30px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.lp-float { animation: float 3s ease-in-out infinite; }
+.lp-fade-up { animation: fadeUp 0.8s ease forwards; }
+.lp-fade-up-d1 { animation-delay: 0.1s; opacity: 0; }
+.lp-fade-up-d2 { animation-delay: 0.3s; opacity: 0; }
+.lp-fade-up-d3 { animation-delay: 0.5s; opacity: 0; }
+
+.lp-nav-link { position: relative; }
+.lp-nav-link::after {
+  content: '';
+  position: absolute;
+  bottom: -4px; left: 0;
+  width: 0; height: 2px;
+  background: #34d399;
+  transition: width 0.3s;
+}
+.lp-nav-link:hover::after { width: 100%; }
+
+.lp-card {
+  transition: transform 0.3s, box-shadow 0.3s;
+}
+.lp-card:hover {
+  transform: translateY(-6px);
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+}

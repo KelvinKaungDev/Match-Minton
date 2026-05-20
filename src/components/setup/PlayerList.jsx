@@ -53,7 +53,7 @@ export default function PlayerList({ players, maxPlayers = 36, onSkillChange, on
                 onClick={() => onSkillChange(player.id, s)}
                 className={`text-xs w-7 h-7 rounded-lg font-bold transition-colors ${
                   player.skill === s
-                    ? 'bg-orange-600 text-white'
+                    ? 'bg-[#34d399] text-[#0f1923]'
                     : 'bg-stone-700 text-stone-400 hover:bg-stone-600'
                 }`}
               >

@@ -69,7 +69,7 @@ export default function SessionConfig({ config, onUpdate }) {
             const val = parseInt(e.target.value, 10)
             onUpdate(courts, maxRoundsPerPlayer, maxPlayers, isNaN(val) ? 0 : val)
           }}
-          className="w-24 bg-stone-800 text-white text-right font-bold rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-orange-500"
+          className="w-24 bg-stone-800 text-white text-right font-bold rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-[#34d399]"
         />
       </div>
 
@@ -80,7 +80,7 @@ export default function SessionConfig({ config, onUpdate }) {
       )}
 
       <div className="pt-3 border-t border-stone-800 text-center">
-        <div className="text-orange-400 font-bold text-lg">{playersPerRound}</div>
+        <div className="text-[#34d399] font-bold text-lg">{playersPerRound}</div>
         <div className="text-stone-500 text-xs mt-0.5">{t.playersPerMatch}</div>
       </div>
     </div>

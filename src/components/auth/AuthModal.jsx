@@ -72,7 +72,7 @@ export default function AuthModal({ mode = 'login', onClose }) {
               onChange={e => setEmail(e.target.value)}
               required
               placeholder="you@example.com"
-              className="w-full bg-stone-800 border border-stone-700 text-white rounded-lg px-3 py-2.5 text-sm placeholder-stone-600 focus:outline-none focus:border-orange-500"
+              className="w-full bg-stone-800 border border-stone-700 text-white rounded-lg px-3 py-2.5 text-sm placeholder-stone-600 focus:outline-none focus:border-[#34d399]"
             />
           </div>
 
@@ -84,7 +84,7 @@ export default function AuthModal({ mode = 'login', onClose }) {
               onChange={e => setPassword(e.target.value)}
               required
               placeholder="••••••••"
-              className="w-full bg-stone-800 border border-stone-700 text-white rounded-lg px-3 py-2.5 text-sm placeholder-stone-600 focus:outline-none focus:border-orange-500"
+              className="w-full bg-stone-800 border border-stone-700 text-white rounded-lg px-3 py-2.5 text-sm placeholder-stone-600 focus:outline-none focus:border-[#34d399]"
             />
           </div>
 
@@ -97,7 +97,7 @@ export default function AuthModal({ mode = 'login', onClose }) {
                 onChange={e => setConfirm(e.target.value)}
                 required
                 placeholder="••••••••"
-                className="w-full bg-stone-800 border border-stone-700 text-white rounded-lg px-3 py-2.5 text-sm placeholder-stone-600 focus:outline-none focus:border-orange-500"
+                className="w-full bg-stone-800 border border-stone-700 text-white rounded-lg px-3 py-2.5 text-sm placeholder-stone-600 focus:outline-none focus:border-[#34d399]"
               />
             </div>
           )}
@@ -109,7 +109,7 @@ export default function AuthModal({ mode = 'login', onClose }) {
           <button
             type="submit"
             disabled={loading}
-            className="w-full bg-orange-600 hover:bg-orange-500 disabled:bg-stone-700 disabled:text-stone-500 text-white font-semibold rounded-xl py-3 text-sm transition-colors mt-1"
+            className="w-full bg-[#34d399] hover:bg-[#6ee7b7] disabled:bg-stone-700 disabled:text-stone-500 text-[#0f1923] font-semibold rounded-xl py-3 text-sm transition-colors mt-1"
           >
             {loading ? '...' : isLogin ? 'Log in' : 'Create account'}
           </button>
@@ -119,7 +119,7 @@ export default function AuthModal({ mode = 'login', onClose }) {
           {isLogin ? "Don't have an account?" : 'Already have an account?'}{' '}
           <button
             onClick={switchMode}
-            className="text-orange-400 hover:text-orange-300 font-medium"
+            className="text-[#34d399] hover:text-[#6ee7b7] font-medium"
           >
             {isLogin ? 'Sign up' : 'Log in'}
           </button>
@@ -141,6 +141,8 @@ function friendlyError(code) {
       return 'Invalid email address'
     case 'auth/too-many-requests':
       return 'Too many attempts. Please try again later'
+    case 'auth/operation-not-allowed':
+      return 'Email/password sign-in is not enabled. Contact the administrator'
     default:
       return 'Something went wrong. Please try again'
   }

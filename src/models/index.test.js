@@ -62,6 +62,7 @@ describe('computeConfig', () => {
       maxRoundsPerPlayer: 4,
       playersPerRound: 12,
       maxPlayers: 24,
+      fullRoundPrice: 0,
     })
   })
 })

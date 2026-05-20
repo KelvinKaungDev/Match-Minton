@@ -62,6 +62,19 @@ export const strings = {
     noBench: 'ไม่มีคนในแถว',
     leave: 'ออก',
 
+    // Price prompt
+    setPriceTitle: 'ตั้งราคาก่อนเริ่ม?',
+    setPriceDesc: 'ยังไม่ได้ตั้งราคาค่าคอร์ท — ตั้งตอนนี้หรือข้ามไปก็ได้',
+    skipPrice: 'ข้าม',
+    setAndStart: 'ตั้งราคา & เริ่ม',
+
+    // Config validation
+    configErrorTitle: 'กรุณาตั้งค่าก่อน',
+    errorNoCourts: 'จำนวนคอร์ทต้องมากกว่า 0',
+    errorNoRounds: 'จำนวนรอบสูงสุดต้องมากกว่า 0',
+    errorNoMaxPlayers: 'จำนวนผู้เล่นสูงสุดต้องมากกว่า 0',
+    errorNoPrice: 'ยังไม่ได้ตั้งราคาค่าคอร์ท (FullRound Price)',
+
     // WaitingTab
     noWaiting: 'ไม่มีคนรอเข้า',
     arrived: 'มาแล้ว',
@@ -85,6 +98,7 @@ export const strings = {
     // DoneTab
     noDone: 'ยังไม่มีคนเสร็จ',
     playMore: 'เล่นอีก',
+    leftEarly: 'ออกก่อน',
 
     // Summary
     sessionSummary: 'สรุปเซสชัน',
@@ -161,6 +175,19 @@ export const strings = {
     noBench: 'No players on bench',
     leave: 'Leave',
 
+    // Price prompt
+    setPriceTitle: 'Set price before starting?',
+    setPriceDesc: 'No court fee has been set — set one now or skip.',
+    skipPrice: 'Skip',
+    setAndStart: 'Set & Start',
+
+    // Config validation
+    configErrorTitle: 'Please fix the following',
+    errorNoCourts: 'Courts must be greater than 0',
+    errorNoRounds: 'Max rounds must be greater than 0',
+    errorNoMaxPlayers: 'Max players must be greater than 0',
+    errorNoPrice: 'Court fee (Full Round Price) is not set',
+
     // WaitingTab
     noWaiting: 'No waiting players',
     arrived: 'Arrived',
@@ -184,6 +211,7 @@ export const strings = {
     // DoneTab
     noDone: 'No done players',
     playMore: 'Play More',
+    leftEarly: 'Left Early',
 
     // Summary
     sessionSummary: 'Session Summary',

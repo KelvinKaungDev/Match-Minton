@@ -33,7 +33,7 @@ export default function SessionScreen({ state }) {
             onClick={() => setTabKey(key)}
             className={`flex-1 py-3 text-sm font-medium transition-colors ${
               tabKey === key
-                ? 'text-orange-400 border-b-2 border-orange-400'
+                ? 'text-[#34d399] border-b-2 border-[#34d399]'
                 : 'text-stone-500 hover:text-stone-300'
             }`}
           >
@@ -45,7 +45,7 @@ export default function SessionScreen({ state }) {
       {tabKey === 'courts' && <CourtsTab courts={courts} onLeave={markLeave} onComplete={completeCourt} onRefill={refillCourt} players={players} history={session.history ?? []} />}
       {tabKey === 'bench' && <BenchTab players={players} session={session} onLeave={markLeave} onFillCourts={fillEmptyCourts} onWalkIn={addWalkIn} />}
       {tabKey === 'waiting' && <WaitingTab players={players} onActivate={activatePlayer} />}
-      {tabKey === 'done' && <DoneTab players={players} onVolunteer={volunteerMore} />}
+      {tabKey === 'done' && <DoneTab players={players} session={session} onVolunteer={volunteerMore} />}
 
       <div className="fixed bottom-0 left-0 right-0 bg-stone-950/95 backdrop-blur border-t border-stone-800 px-4 py-3">
         <button

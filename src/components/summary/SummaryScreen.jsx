@@ -22,7 +22,7 @@ export default function SummaryScreen({ state }) {
   return (
     <div className="min-h-screen bg-stone-950 pb-24">
       <div className="max-w-lg mx-auto px-4 py-6 space-y-4">
-        <h1 className="text-orange-400 font-bold text-2xl tracking-tight">{t.sessionSummary}</h1>
+        <h1 className="text-[#34d399] font-bold text-2xl tracking-tight">{t.sessionSummary}</h1>
 
         <div className="grid grid-cols-2 gap-3">
           {[
@@ -32,7 +32,7 @@ export default function SummaryScreen({ state }) {
             { value: mvp?.name ?? '—', label: t.mvpLabel(mvp?.roundsPlayed ?? 0), accent: true },
           ].map(({ value, label, accent }) => (
             <div key={label} className="bg-stone-900 rounded-xl p-4 text-center">
-              <div className={`font-bold text-xl truncate ${accent ? 'text-orange-400' : 'text-white'}`}>
+              <div className={`font-bold text-xl truncate ${accent ? 'text-[#34d399]' : 'text-white'}`}>
                 {value}
               </div>
               <div className="text-stone-500 text-xs mt-1">{label}</div>
@@ -45,22 +45,26 @@ export default function SummaryScreen({ state }) {
             <div className="flex items-center justify-between">
               <h2 className="text-white font-semibold text-sm uppercase tracking-wide">{t.payment}</h2>
               <div className="text-right">
-                <span className="text-orange-400 font-bold text-lg">{totalCollect.toLocaleString()}</span>
+                <span className="text-[#34d399] font-bold text-lg">{totalCollect.toLocaleString()}</span>
                 <span className="text-stone-500 text-xs ml-1">{t.totalCollect}</span>
               </div>
             </div>
             {sorted.filter(p => p.roundsPlayed > 0).map(p => {
               const cost = calcPlayerCost(p.roundsPlayed, fullRoundPrice, maxRoundsPerPlayer)
               const isFullRound = p.roundsPlayed >= maxRoundsPerPlayer
+              const isLeft = p.status === STATUS.LEAVE
               return (
                 <div key={p.id} className="flex items-center justify-between">
                   <div className="flex items-center gap-2 min-w-0">
                     <span className="text-white text-sm truncate">{p.name}</span>
+                    {isLeft && (
+                      <span className="text-red-400/70 text-xs shrink-0">{t.leftEarly}</span>
+                    )}
                     {!isFullRound && (
                       <span className="text-stone-500 text-xs shrink-0">{t.rounds(p.roundsPlayed)}</span>
                     )}
                   </div>
-                  <span className={`font-semibold text-sm shrink-0 ${isFullRound ? 'text-orange-400' : 'text-stone-300'}`}>
+                  <span className={`font-semibold text-sm shrink-0 ${isFullRound ? 'text-[#34d399]' : 'text-stone-300'}`}>
                     {cost.toLocaleString()}
                   </span>
                 </div>
@@ -76,7 +80,7 @@ export default function SummaryScreen({ state }) {
               <span className="text-white text-sm w-28 truncate shrink-0">{p.name}</span>
               <div className="flex-1 h-1.5 bg-stone-800 rounded-full overflow-hidden">
                 <div
-                  className="h-full bg-orange-500 rounded-full transition-all"
+                  className="h-full bg-[#34d399] rounded-full transition-all"
                   style={{ width: `${maxRoundsPerPlayer ? Math.min(100, (p.roundsPlayed / maxRoundsPerPlayer) * 100) : 0}%` }}
                 />
               </div>
@@ -89,7 +93,7 @@ export default function SummaryScreen({ state }) {
       <div className="fixed bottom-0 left-0 right-0 bg-stone-950/95 backdrop-blur border-t border-stone-800 px-4 py-3">
         <button
           onClick={resetSession}
-          className="w-full bg-orange-600 hover:bg-orange-500 text-white font-semibold rounded-xl py-3.5 transition-colors"
+          className="w-full bg-[#34d399] hover:bg-[#6ee7b7] text-[#0f1923] font-semibold rounded-xl py-3.5 transition-colors"
         >
           {t.newSession}
         </button>

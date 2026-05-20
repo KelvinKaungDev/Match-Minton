@@ -31,7 +31,7 @@ function WalkInForm({ onWalkIn, maxPlayers, playerCount }) {
       <button
         onClick={() => setOpen(true)}
         disabled={playerCount >= maxPlayers}
-        className="w-full py-2.5 border border-dashed border-stone-700 hover:border-orange-500/50 text-stone-500 hover:text-orange-400 rounded-xl text-sm font-medium transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+        className="w-full py-2.5 border border-dashed border-stone-700 hover:border-[#34d399]/50 text-stone-500 hover:text-[#34d399] rounded-xl text-sm font-medium transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
       >
         {t.walkIn}
       </button>
@@ -49,7 +49,7 @@ function WalkInForm({ onWalkIn, maxPlayers, playerCount }) {
         value={name}
         onChange={e => { setName(e.target.value); setError('') }}
         placeholder={t.playerName}
-        className="w-full bg-stone-800 rounded-lg px-3 py-2 text-white placeholder-stone-500 text-sm outline-none focus:ring-2 focus:ring-orange-500"
+        className="w-full bg-stone-800 rounded-lg px-3 py-2 text-white placeholder-stone-500 text-sm outline-none focus:ring-2 focus:ring-[#34d399]"
       />
       <div className="flex gap-2">
         {SKILLS.map(s => (
@@ -57,14 +57,14 @@ function WalkInForm({ onWalkIn, maxPlayers, playerCount }) {
             key={s}
             type="button"
             onClick={() => setSkill(s)}
-            className={`flex-1 py-1.5 rounded-lg text-sm font-bold transition-colors ${skill === s ? 'bg-orange-600 text-white' : 'bg-stone-800 text-stone-400 hover:bg-stone-700'}`}
+            className={`flex-1 py-1.5 rounded-lg text-sm font-bold transition-colors ${skill === s ? 'bg-[#34d399] text-[#0f1923]' : 'bg-stone-800 text-stone-400 hover:bg-stone-700'}`}
           >
             {s}
           </button>
         ))}
       </div>
       {error && <p className="text-red-400 text-xs">{error}</p>}
-      <button type="submit" className="w-full bg-orange-600 hover:bg-orange-500 text-white rounded-lg py-2 text-sm font-semibold transition-colors">
+      <button type="submit" className="w-full bg-[#34d399] hover:bg-[#6ee7b7] text-[#0f1923] rounded-lg py-2 text-sm font-semibold transition-colors">
         {t.addToBench}
       </button>
     </form>
@@ -84,9 +84,9 @@ export default function BenchTab({ players, session, onLeave, onFillCourts, onWa
   return (
     <div className="space-y-3 p-4">
       {showFill && (
-        <div className="bg-orange-950/60 border border-orange-500/30 rounded-xl p-4 flex items-center justify-between gap-3">
+        <div className="bg-[#0a2d1a]/60 border border-[#34d399]/30 rounded-xl p-4 flex items-center justify-between gap-3">
           <div>
-            <p className="text-orange-400 text-sm font-semibold">
+            <p className="text-[#34d399] text-sm font-semibold">
               {t.onBench(bench.length)}
             </p>
             <p className="text-stone-400 text-xs mt-0.5">
@@ -95,7 +95,7 @@ export default function BenchTab({ players, session, onLeave, onFillCourts, onWa
           </div>
           <button
             onClick={onFillCourts}
-            className="shrink-0 bg-orange-600 hover:bg-orange-500 text-white text-sm font-semibold px-4 py-2 rounded-lg transition-colors"
+            className="shrink-0 bg-[#34d399] hover:bg-[#6ee7b7] text-[#0f1923] text-sm font-semibold px-4 py-2 rounded-lg transition-colors"
           >
             {t.matchNow}
           </button>
