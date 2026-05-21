@@ -11,8 +11,9 @@ export const SKILLS = ['S', 'A', 'B', 'C']
 
 export const DEFAULT_CONFIG = { courts: 5, maxRoundsPerPlayer: 6, maxPlayers: 36, fullRoundPrice: 0 }
 
-export function computeConfig(courts, maxRoundsPerPlayer = 6, maxPlayers = 36, fullRoundPrice = 0) {
-  return { courts, maxRoundsPerPlayer, playersPerRound: courts * 4, maxPlayers, fullRoundPrice }
+export function computeConfig(courts, maxRoundsPerPlayer = 6, maxPlayers = 36, fullRoundPrice = 0, courtNames = null) {
+  const names = Array.from({ length: courts }, (_, i) => courtNames?.[i] ?? String(i + 1))
+  return { courts, maxRoundsPerPlayer, playersPerRound: courts * 4, maxPlayers, fullRoundPrice, courtNames: names }
 }
 
 export function calcPlayerCost(roundsPlayed, fullRoundPrice, maxRoundsPerPlayer) {

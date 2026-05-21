@@ -79,13 +79,14 @@ export default function AddPlayer({ onAdd, onAddBulk, maxPlayers = 36 }) {
     const result = await onAdd(trimmed, skill)
     if (result?.error === 'duplicate') setError(t.duplicateName)
     else if (result?.error === 'max') setError(t.maxReached(maxPlayers))
-    else { setName(''); setError('') }
+    else if (!result?.error) { setName(''); setError('') }
   }
 
   const handleBulk = async () => {
     const names = editableNames.map(n => n.trim()).filter(n => n.length >= 2)
     if (names.length === 0) return
-    await onAddBulk(names, bulkSkill)
+    const result = await onAddBulk(names, bulkSkill)
+    if (result?.error) return
     setBulkText('')
     setEditableNames([])
   }
@@ -143,9 +144,18 @@ export default function AddPlayer({ onAdd, onAddBulk, maxPlayers = 36 }) {
 
           {editableNames.length > 0 && (
             <div className="bg-stone-800 rounded-lg px-3 py-2 space-y-2">
-              <p className="text-[#34d399] text-xs font-medium">
-                {t.bulkFound(editableNames.length)}
-              </p>
+              <div className="flex items-center justify-between">
+                <p className="text-[#34d399] text-xs font-medium">
+                  {t.bulkFound(editableNames.length)}
+                </p>
+                <button
+                  type="button"
+                  onClick={() => { setBulkText(''); setEditableNames([]) }}
+                  className="text-red-400 hover:text-red-300 text-xs font-medium transition-colors"
+                >
+                  {t.clearAll}
+                </button>
+              </div>
               <div className="space-y-1.5 max-h-48 overflow-y-auto pr-1">
                 {editableNames.map((n, i) => (
                   <div key={i} className="flex items-center gap-2">

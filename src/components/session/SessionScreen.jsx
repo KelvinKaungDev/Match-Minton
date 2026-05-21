@@ -4,13 +4,14 @@ import CourtsTab from './CourtsTab.jsx'
 import BenchTab from './BenchTab.jsx'
 import WaitingTab from './WaitingTab.jsx'
 import DoneTab from './DoneTab.jsx'
+import HistoryTab from './HistoryTab.jsx'
 import { useLang } from '../../context/LangContext.jsx'
 
-const TAB_KEYS = ['courts', 'bench', 'waiting', 'done']
+const TAB_KEYS = ['courts', 'bench', 'waiting', 'done', 'history']
 
 export default function SessionScreen({ state }) {
   const { t } = useLang()
-  const { players, session, courts, markLeave, activatePlayer, volunteerMore, fillEmptyCourts, completeCourt, refillCourt, addWalkIn, endSession } = state
+  const { players, session, courts, markLeave, activatePlayer, volunteerMore, fillEmptyCourts, completeCourt, refillCourt, swapPlayers, addWalkIn, endSession } = state
   const [tabKey, setTabKey] = useState('courts')
 
   if (!session) return null
@@ -20,6 +21,7 @@ export default function SessionScreen({ state }) {
     bench: t.tabBench,
     waiting: t.tabWaiting,
     done: t.tabDone,
+    history: t.tabHistory,
   }
 
   return (
@@ -42,7 +44,8 @@ export default function SessionScreen({ state }) {
         ))}
       </div>
 
-      {tabKey === 'courts' && <CourtsTab courts={courts} onLeave={markLeave} onComplete={completeCourt} onRefill={refillCourt} players={players} history={session.history ?? []} />}
+      {tabKey === 'courts' && <CourtsTab courts={courts} onLeave={markLeave} onComplete={completeCourt} onRefill={refillCourt} onSwap={swapPlayers} players={players} />}
+      {tabKey === 'history' && <HistoryTab history={session.history ?? []} />}
       {tabKey === 'bench' && <BenchTab players={players} session={session} onLeave={markLeave} onFillCourts={fillEmptyCourts} onWalkIn={addWalkIn} />}
       {tabKey === 'waiting' && <WaitingTab players={players} onActivate={activatePlayer} />}
       {tabKey === 'done' && <DoneTab players={players} session={session} onVolunteer={volunteerMore} />}

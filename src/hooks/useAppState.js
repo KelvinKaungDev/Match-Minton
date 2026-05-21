@@ -49,8 +49,8 @@ export function useAppState(uid) {
     return () => { unsubSession(); unsubPlayers() }
   }, [SESSION_REF, PLAYERS_REF])
 
-  const updateConfig = async (courts, maxRoundsPerPlayer, maxPlayers, fullRoundPrice) => {
-    await updateDoc(SESSION_REF, { config: computeConfig(courts, maxRoundsPerPlayer, maxPlayers, fullRoundPrice) })
+  const updateConfig = async (courts, maxRoundsPerPlayer, maxPlayers, fullRoundPrice, courtNames = null) => {
+    await updateDoc(SESSION_REF, { config: computeConfig(courts, maxRoundsPerPlayer, maxPlayers, fullRoundPrice, courtNames) })
   }
 
   const addPlayer = async (name, skill) => {
@@ -113,11 +113,13 @@ export function useAppState(uid) {
     for (const p of playing) {
       batch.update(doc(PLAYERS_REF, p.id), { status: STATUS.PLAYING, roundsPlayed: p.roundsPlayed + 1 })
     }
+    const courtNames = session.config.courtNames ?? []
     batch.update(SESSION_REF, {
       screen: 'session',
       history: [],
-      courts: courts.map(c => ({
+      courts: courts.map((c, i) => ({
         id: c.id,
+        name: courtNames[i] ?? String(c.id),
         teamA: c.teamA.map(p => p.id),
         teamB: c.teamB.map(p => p.id),
       })),
@@ -141,12 +143,14 @@ export function useAppState(uid) {
       matchNo: (session.history ?? []).length + 1,
       court: {
         id: courtId,
+        name: court.name ?? String(courtId),
         teamA: court.teamA.map(id => { const p = players.find(pl => pl.id === id); return p ? { name: p.name, skill: p.skill } : null }).filter(Boolean),
         teamB: court.teamB.map(id => { const p = players.find(pl => pl.id === id); return p ? { name: p.name, skill: p.skill } : null }).filter(Boolean),
       },
     }
+    const emptyingCourt = session.courts.find(c => c.id === courtId)
     const newCourts = session.courts.map(c =>
-      c.id === courtId ? { id: courtId, teamA: [], teamB: [] } : c
+      c.id === courtId ? { id: courtId, name: emptyingCourt?.name ?? String(courtId), teamA: [], teamB: [] } : c
     )
     batch.update(SESSION_REF, { courts: newCourts, history: arrayUnion(matchEntry) })
     await batch.commit()
@@ -157,7 +161,8 @@ export function useAppState(uid) {
     const bench = players.filter(p => p.status === STATUS.BENCH)
     if (bench.length < 4) return
     const { courts: [newCourt], playing } = generateRound(bench, 1)
-    const filledCourt = { id: courtId, teamA: newCourt.teamA.map(p => p.id), teamB: newCourt.teamB.map(p => p.id) }
+    const existingCourt = session.courts.find(c => c.id === courtId)
+    const filledCourt = { id: courtId, name: existingCourt?.name ?? String(courtId), teamA: newCourt.teamA.map(p => p.id), teamB: newCourt.teamB.map(p => p.id) }
     const batch = writeBatch(db)
     for (const p of playing) {
       batch.update(doc(PLAYERS_REF, p.id), { status: STATUS.PLAYING, roundsPlayed: p.roundsPlayed + 1 })
@@ -178,7 +183,12 @@ export function useAppState(uid) {
     if (bench.length < 4) return
 
     const { courts: newCourts, playing } = generateRound(bench, emptyCourts)
-    const renumbered = newCourts.map((c, i) => ({ ...c, id: activeCourts + i + 1 }))
+    const configNames = session.config.courtNames ?? []
+    const renumbered = newCourts.map((c, i) => ({
+      ...c,
+      id: activeCourts + i + 1,
+      name: configNames[activeCourts + i] ?? String(activeCourts + i + 1),
+    }))
 
     const batch = writeBatch(db)
     for (const p of playing) {
@@ -234,6 +244,24 @@ export function useAppState(uid) {
     return { success: true }
   }
 
+  const swapPlayers = async (courtPlayerId, benchPlayerId, courtId) => {
+    const benchPlayer = players.find(p => p.id === benchPlayerId)
+    if (!benchPlayer || !session) return
+    const batch = writeBatch(db)
+    batch.update(doc(PLAYERS_REF, courtPlayerId), { status: STATUS.BENCH })
+    batch.update(doc(PLAYERS_REF, benchPlayerId), { status: STATUS.PLAYING, roundsPlayed: benchPlayer.roundsPlayed + 1 })
+    const newCourts = session.courts.map(c => {
+      if (c.id !== courtId) return c
+      return {
+        ...c,
+        teamA: c.teamA.map(pid => pid === courtPlayerId ? benchPlayerId : pid),
+        teamB: c.teamB.map(pid => pid === courtPlayerId ? benchPlayerId : pid),
+      }
+    })
+    batch.update(SESSION_REF, { courts: newCourts })
+    await batch.commit()
+  }
+
   const activatePlayer = async (id) => updateDoc(doc(PLAYERS_REF, id), { status: STATUS.BENCH })
 
   const volunteerMore = async (id) => updateDoc(doc(PLAYERS_REF, id), { status: STATUS.BENCH })
@@ -257,7 +285,7 @@ export function useAppState(uid) {
     players, session, courts, loading,
     updateConfig, addPlayer, addPlayers, removePlayer,
     updatePlayerSkill, togglePlayerStatus, markAllBench,
-    startSession, fillEmptyCourts, markLeave,
+    startSession, fillEmptyCourts, markLeave, swapPlayers,
     completeCourt, refillCourt,
     activatePlayer, volunteerMore, addWalkIn,
     endSession, resetSession,

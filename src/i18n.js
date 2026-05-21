@@ -9,6 +9,7 @@ export const strings = {
     // SessionConfig
     sessionConfig: 'ตั้งค่าเซสชัน',
     courts: 'คอร์ท',
+    courtNames: 'หมายเลขคอร์ท',
     maxRounds: 'รอบสูงสุด / คน',
     maxPlayers: 'จำนวนผู้เล่นสูงสุด',
     playersPerMatch: 'ผู้เล่นต่อรอบ',
@@ -36,12 +37,14 @@ export const strings = {
     bulkPlaceholder: 'วางรายชื่อจาก Line/Chat ได้เลย เช่น:\n1. ชิ (CF)\n2. พี่ยู (CF)\n3. Hong (เพื่อนแทน) (CF)\n...\nระบบจะดึงชื่อให้อัตโนมัติ',
     bulkNoNames: 'ไม่พบรายชื่อ — ลองวางข้อความที่มีเลข เช่น "1. ชื่อ"',
     bulkFound: (n) => `พบ ${n} คน — แก้ชื่อได้ก่อน Import`,
+    clearAll: 'ล้างทั้งหมด',
 
     // Session tabs
     tabCourts: 'คอร์ท',
     tabBench: 'แถว',
     tabWaiting: 'รอเข้า',
     tabDone: 'เสร็จ',
+    tabHistory: 'ประวัติ',
     endSession: 'จบเซสชัน',
 
     // SessionHeader
@@ -82,6 +85,7 @@ export const strings = {
     // CourtsTab
     noCourts: 'ไม่มีคอร์ทที่กำลังเล่น',
     history: 'ประวัติ',
+    noHistory: 'ยังไม่มีประวัติแมตช์',
     matchNo: (n) => `แมตช์ที่ ${n}`,
     courtNo: (n) => `คอร์ท ${n}`,
     teamA: 'ทีม A',
@@ -94,6 +98,10 @@ export const strings = {
     need4: 'ต้องการ 4+ คนในแถว',
     courtDone: 'จบคอร์ท',
     rounds: (n) => `${n} รอบ`,
+    swap: 'สลับ',
+    swapWith: (name) => `สลับ ${name} กับ:`,
+    cancelSwap: 'ยกเลิก',
+    noBenchForSwap: 'ไม่มีคนในแถว',
 
     // DoneTab
     noDone: 'ยังไม่มีคนเสร็จ',
@@ -122,6 +130,7 @@ export const strings = {
     // SessionConfig
     sessionConfig: 'Session Config',
     courts: 'Courts',
+    courtNames: 'Court Numbers',
     maxRounds: 'Max Rounds / Player',
     maxPlayers: 'Max Players',
     playersPerMatch: 'Players per match',
@@ -149,12 +158,14 @@ export const strings = {
     bulkPlaceholder: 'Paste names from Line/Chat, e.g.:\n1. John\n2. Jane\n3. Bob\n...\nNames will be extracted automatically',
     bulkNoNames: 'No names found — try pasting text with numbers e.g. "1. Name"',
     bulkFound: (n) => `Found ${n} — edit before importing`,
+    clearAll: 'Clear all',
 
     // Session tabs
     tabCourts: 'Courts',
     tabBench: 'Bench',
     tabWaiting: 'Waiting',
     tabDone: 'Done',
+    tabHistory: 'History',
     endSession: 'End Session',
 
     // SessionHeader
@@ -195,6 +206,7 @@ export const strings = {
     // CourtsTab
     noCourts: 'No active courts',
     history: 'History',
+    noHistory: 'No match history yet',
     matchNo: (n) => `Match ${n}`,
     courtNo: (n) => `Court ${n}`,
     teamA: 'TEAM A',
@@ -207,6 +219,10 @@ export const strings = {
     need4: 'Need 4+ on Bench',
     courtDone: 'Court Done',
     rounds: (n) => `${n}r`,
+    swap: 'Swap',
+    swapWith: (name) => `Swap ${name} with:`,
+    cancelSwap: 'Cancel',
+    noBenchForSwap: 'No bench players',
 
     // DoneTab
     noDone: 'No done players',

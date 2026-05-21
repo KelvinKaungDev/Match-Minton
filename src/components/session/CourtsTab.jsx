@@ -1,83 +1,55 @@
+import { useState } from 'react'
 import CourtCard from './CourtCard.jsx'
-import SkillBadge from '../shared/SkillBadge.jsx'
 import { useLang } from '../../context/LangContext.jsx'
+import { STATUS } from '../../models/index.js'
 
-function HistoryCourtCard({ court }) {
+export default function CourtsTab({ courts, onLeave, onComplete, onRefill, onSwap, players = [] }) {
   const { t } = useLang()
-  return (
-    <div className="grid grid-cols-2 gap-3">
-      <div>
-        <div className="text-sky-400 text-xs font-medium mb-1">{t.teamA}</div>
-        {court.teamA.map((p, i) => (
-          <div key={i} className="flex items-center gap-1.5 py-0.5">
-            <SkillBadge skill={p.skill} />
-            <span className="text-stone-300 text-xs">{p.name}</span>
-          </div>
-        ))}
-      </div>
-      <div>
-        <div className="text-amber-400 text-xs font-medium mb-1">{t.teamB}</div>
-        {court.teamB.map((p, i) => (
-          <div key={i} className="flex items-center gap-1.5 py-0.5">
-            <SkillBadge skill={p.skill} />
-            <span className="text-stone-300 text-xs">{p.name}</span>
-          </div>
-        ))}
-      </div>
-    </div>
-  )
-}
+  const benchCount = players.filter(p => p.status === STATUS.BENCH).length
+  const benchPlayers = players.filter(p => p.status === STATUS.BENCH)
 
-function MatchHistoryItem({ entry }) {
-  const { t } = useLang()
-  return (
-    <div className="bg-stone-800/50 rounded-xl px-4 py-3 space-y-2">
-      <div className="flex items-center justify-between">
-        <span className="text-stone-400 text-sm font-medium">{t.matchNo(entry.matchNo)}</span>
-        <span className="text-stone-600 text-xs">{t.courtNo(entry.court.id)}</span>
-      </div>
-      <HistoryCourtCard court={entry.court} />
-    </div>
-  )
-}
+  // { playerId, courtId } | null
+  const [swapTarget, setSwapTarget] = useState(null)
 
-export default function CourtsTab({ courts, onLeave, onComplete, onRefill, players = [], history = [] }) {
-  const { t } = useLang()
-  const benchCount = players.filter(p => p.status === 'bench').length
+  const handleSwapSelect = (playerId, courtId) => {
+    setSwapTarget(prev =>
+      prev?.playerId === playerId ? null : { playerId, courtId }
+    )
+  }
+
+  const handleSwapConfirm = async (benchPlayerId) => {
+    if (!swapTarget) return
+    await onSwap(swapTarget.playerId, benchPlayerId, swapTarget.courtId)
+    setSwapTarget(null)
+  }
+
+  const handleCancelSwap = () => setSwapTarget(null)
 
   return (
-    <div className="space-y-3 p-4">
+    <div className="p-3">
       {courts.length === 0
         ? <p className="text-stone-600 text-sm text-center py-12">{t.noCourts}</p>
-        : courts.map(court => (
-            <CourtCard
-              key={court.id}
-              court={court}
-              onLeave={onLeave}
-              onComplete={onComplete}
-              onRefill={onRefill}
-              canRefill={benchCount >= 4}
-            />
-          ))
+        : (
+          <div className="grid grid-cols-2 gap-2">
+            {courts.map(court => (
+              <CourtCard
+                key={court.id}
+                court={court}
+                onLeave={onLeave}
+                onComplete={onComplete}
+                onRefill={onRefill}
+                canRefill={benchCount >= 4}
+                swapPlayerId={swapTarget?.courtId === court.id ? swapTarget.playerId : null}
+                benchPlayers={benchPlayers}
+                onSwapSelect={handleSwapSelect}
+                onSwapConfirm={handleSwapConfirm}
+                onCancelSwap={handleCancelSwap}
+              />
+            ))}
+          </div>
+        )
       }
 
-      {history.length > 0 && (
-        <>
-          <div className="flex items-center gap-3 pt-2">
-            <div className="flex-1 h-px bg-stone-800" />
-            <span className="text-stone-600 text-xs uppercase tracking-widest">{t.history}</span>
-            <div className="flex-1 h-px bg-stone-800" />
-          </div>
-
-          <div className="space-y-2">
-            {[...history].reverse()
-              .filter(entry => entry.court && entry.matchNo != null)
-              .map(entry => (
-                <MatchHistoryItem key={entry.matchNo} entry={entry} />
-              ))}
-          </div>
-        </>
-      )}
     </div>
   )
 }

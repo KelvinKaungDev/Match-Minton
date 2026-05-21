@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import AuthModal from '../auth/AuthModal.jsx'
+import CourtsSection from './CourtsSection.jsx'
 
 const IconRotate = () => (
   <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#34d399" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -215,6 +216,9 @@ export default function LandingPage() {
           ))}
         </div>
       </section>
+
+      {/* Courts directory */}
+      <CourtsSection />
 
       {/* Footer */}
       <footer

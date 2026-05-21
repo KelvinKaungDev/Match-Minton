@@ -27,10 +27,24 @@ function Stepper({ label, value, min, max, onDecrement, onIncrement }) {
 
 export default function SessionConfig({ config, onUpdate }) {
   const { t } = useLang()
-  const { courts, maxRoundsPerPlayer, playersPerRound, maxPlayers = 36, fullRoundPrice = 0 } = config
+  const { courts, maxRoundsPerPlayer, playersPerRound, maxPlayers = 36, fullRoundPrice = 0, courtNames = [] } = config
   const pricePerRound = maxRoundsPerPlayer > 0 && fullRoundPrice > 0
     ? Math.round(fullRoundPrice / maxRoundsPerPlayer)
     : 0
+
+  const names = Array.from({ length: courts }, (_, i) => courtNames[i] ?? String(i + 1))
+
+  const handleCourtsChange = (delta) => {
+    const next = courts + delta
+    const nextNames = Array.from({ length: next }, (_, i) => courtNames[i] ?? String(i + 1))
+    onUpdate(next, maxRoundsPerPlayer, maxPlayers, fullRoundPrice, nextNames)
+  }
+
+  const handleNameChange = (i, val) => {
+    const nextNames = [...names]
+    nextNames[i] = val
+    onUpdate(courts, maxRoundsPerPlayer, maxPlayers, fullRoundPrice, nextNames)
+  }
 
   return (
     <div className="bg-stone-900 rounded-xl p-4 space-y-4">
@@ -40,22 +54,39 @@ export default function SessionConfig({ config, onUpdate }) {
         label={t.courts}
         value={courts}
         min={1} max={15}
-        onDecrement={() => onUpdate(courts - 1, maxRoundsPerPlayer, maxPlayers, fullRoundPrice)}
-        onIncrement={() => onUpdate(courts + 1, maxRoundsPerPlayer, maxPlayers, fullRoundPrice)}
+        onDecrement={() => handleCourtsChange(-1)}
+        onIncrement={() => handleCourtsChange(1)}
       />
+
+      {/* Court name inputs */}
+      <div className="space-y-1.5">
+        <span className="text-stone-400 text-xs">{t.courtNames}</span>
+        <div className="flex flex-wrap gap-1.5">
+          {names.map((name, i) => (
+            <input
+              key={i}
+              value={name}
+              onChange={e => handleNameChange(i, e.target.value)}
+              maxLength={5}
+              className="w-12 bg-stone-800 text-white text-center text-sm font-bold rounded-lg px-1 py-1.5 focus:outline-none focus:ring-1 focus:ring-[#34d399]"
+            />
+          ))}
+        </div>
+      </div>
+
       <Stepper
         label={t.maxRounds}
         value={maxRoundsPerPlayer}
         min={1} max={20}
-        onDecrement={() => onUpdate(courts, maxRoundsPerPlayer - 1, maxPlayers, fullRoundPrice)}
-        onIncrement={() => onUpdate(courts, maxRoundsPerPlayer + 1, maxPlayers, fullRoundPrice)}
+        onDecrement={() => onUpdate(courts, maxRoundsPerPlayer - 1, maxPlayers, fullRoundPrice, names)}
+        onIncrement={() => onUpdate(courts, maxRoundsPerPlayer + 1, maxPlayers, fullRoundPrice, names)}
       />
       <Stepper
         label={t.maxPlayers}
         value={maxPlayers}
         min={4} max={200}
-        onDecrement={() => onUpdate(courts, maxRoundsPerPlayer, maxPlayers - 1, fullRoundPrice)}
-        onIncrement={() => onUpdate(courts, maxRoundsPerPlayer, maxPlayers + 1, fullRoundPrice)}
+        onDecrement={() => onUpdate(courts, maxRoundsPerPlayer, maxPlayers - 1, fullRoundPrice, names)}
+        onIncrement={() => onUpdate(courts, maxRoundsPerPlayer, maxPlayers + 1, fullRoundPrice, names)}
       />
 
       <div className="flex items-center justify-between pt-3 border-t border-stone-800">
@@ -67,7 +98,7 @@ export default function SessionConfig({ config, onUpdate }) {
           placeholder="0"
           onChange={e => {
             const val = parseInt(e.target.value, 10)
-            onUpdate(courts, maxRoundsPerPlayer, maxPlayers, isNaN(val) ? 0 : val)
+            onUpdate(courts, maxRoundsPerPlayer, maxPlayers, isNaN(val) ? 0 : val, names)
           }}
           className="w-24 bg-stone-800 text-white text-right font-bold rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-[#34d399]"
         />

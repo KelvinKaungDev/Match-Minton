@@ -103,13 +103,13 @@ export default function SetupScreen({ state }) {
 
   const handleAddPlayer = async (name, skill) => {
     const errs = getErrors()
-    if (errs.length > 0) { setConfigErrors(errs); return }
+    if (errs.length > 0) { setConfigErrors(errs); return { error: 'config' } }
     return addPlayer(name, skill)
   }
 
   const handleAddPlayers = async (names, skill) => {
     const errs = getErrors()
-    if (errs.length > 0) { setConfigErrors(errs); return }
+    if (errs.length > 0) { setConfigErrors(errs); return { error: 'config' } }
     return addPlayers(names, skill)
   }
 
