@@ -16,6 +16,8 @@
     "firebase": "^12.12.1",
     "react": "^19.2.5",
     "react-dom": "^19.2.5",
+    "react-qr-code": "^2.0.21",
+    "react-router-dom": "^7.15.1",
     "tailwindcss": "^4.2.4"
   },
   "devDependencies": {

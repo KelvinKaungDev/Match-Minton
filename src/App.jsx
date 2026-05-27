@@ -1,3 +1,4 @@
+import { Routes, Route } from 'react-router-dom'
 import { useAuth } from './context/AuthContext.jsx'
 import { useAppState } from './hooks/useAppState.js'
 import { useLang } from './context/LangContext.jsx'
@@ -6,6 +7,9 @@ import LandingPage from './components/landing/LandingPage.jsx'
 import SetupScreen from './components/setup/SetupScreen.jsx'
 import SessionScreen from './components/session/SessionScreen.jsx'
 import SummaryScreen from './components/summary/SummaryScreen.jsx'
+import JudgeEntry from './components/competition/JudgeEntry.jsx'
+import JudgeView from './components/competition/JudgeView.jsx'
+import BigScreenScoreboard from './components/competition/BigScreenScoreboard.jsx'
 
 function AppContent() {
   const { user, logout } = useAuth()
@@ -40,7 +44,7 @@ function AppContent() {
   )
 }
 
-export default function App() {
+function AuthGatedApp() {
   const { user } = useAuth()
 
   if (user === undefined) {
@@ -51,9 +55,18 @@ export default function App() {
     )
   }
 
-  if (!user) {
-    return <LandingPage />
-  }
+  if (!user) return <LandingPage />
 
   return <AppContent />
+}
+
+export default function App() {
+  return (
+    <Routes>
+      <Route path="/judge" element={<JudgeEntry />} />
+      <Route path="/judge/:code" element={<JudgeView />} />
+      <Route path="/scoreboard/:sessionId" element={<BigScreenScoreboard />} />
+      <Route path="/*" element={<AuthGatedApp />} />
+    </Routes>
+  )
 }

@@ -45,6 +45,7 @@ export const strings = {
     tabWaiting: 'รอเข้า',
     tabDone: 'เสร็จ',
     tabHistory: 'ประวัติ',
+    tabCompete: 'แข่ง',
     endSession: 'จบเซสชัน',
 
     // SessionHeader
@@ -166,6 +167,7 @@ export const strings = {
     tabWaiting: 'Waiting',
     tabDone: 'Done',
     tabHistory: 'History',
+    tabCompete: 'Compete',
     endSession: 'End Session',
 
     // SessionHeader

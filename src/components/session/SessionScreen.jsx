@@ -5,9 +5,10 @@ import BenchTab from './BenchTab.jsx'
 import WaitingTab from './WaitingTab.jsx'
 import DoneTab from './DoneTab.jsx'
 import HistoryTab from './HistoryTab.jsx'
+import CompetitionSetup from '../competition/CompetitionSetup.jsx'
 import { useLang } from '../../context/LangContext.jsx'
 
-const TAB_KEYS = ['courts', 'bench', 'waiting', 'done', 'history']
+const TAB_KEYS = ['courts', 'bench', 'waiting', 'done', 'history', 'compete']
 
 export default function SessionScreen({ state }) {
   const { t } = useLang()
@@ -22,6 +23,7 @@ export default function SessionScreen({ state }) {
     waiting: t.tabWaiting,
     done: t.tabDone,
     history: t.tabHistory,
+    compete: t.tabCompete,
   }
 
   return (
@@ -49,6 +51,7 @@ export default function SessionScreen({ state }) {
       {tabKey === 'bench' && <BenchTab players={players} session={session} onLeave={markLeave} onFillCourts={fillEmptyCourts} onWalkIn={addWalkIn} />}
       {tabKey === 'waiting' && <WaitingTab players={players} onActivate={activatePlayer} />}
       {tabKey === 'done' && <DoneTab players={players} session={session} onVolunteer={volunteerMore} />}
+      {tabKey === 'compete' && <div className="p-4"><CompetitionSetup courts={courts} /></div>}
 
       <div className="fixed bottom-0 left-0 right-0 bg-stone-950/95 backdrop-blur border-t border-stone-800 px-4 py-3">
         <button
