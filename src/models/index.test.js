@@ -63,6 +63,7 @@ describe('computeConfig', () => {
       playersPerRound: 12,
       maxPlayers: 24,
       fullRoundPrice: 0,
+      courtNames: ['1', '2', '3'],
     })
   })
 })

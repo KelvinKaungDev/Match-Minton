@@ -1,67 +1,104 @@
-import { useState, useEffect, useMemo } from 'react'
-import {
-  doc, collection, onSnapshot, setDoc, updateDoc,
-  deleteDoc, writeBatch, getDoc, arrayUnion,
-} from 'firebase/firestore'
-import { db } from '../services/firebase.js'
-import { createPlayer, computeConfig, DEFAULT_CONFIG, STATUS } from '../models/index.js'
-import { generateRound, findBestSub } from '../services/matching.js'
+import { useState, useEffect, useCallback } from 'react'
+import { api } from '../services/apiClient.js'
+import { computeConfig, DEFAULT_CONFIG, STATUS } from '../models/index.js'
 
-const DEFAULT_SESSION = {
-  config: computeConfig(DEFAULT_CONFIG.courts, DEFAULT_CONFIG.maxRoundsPerPlayer, DEFAULT_CONFIG.maxPlayers),
-  screen: 'setup',
-  courts: [],
-  history: [],
+function mapPlayer(dto) {
+  return {
+    id: dto.id,
+    name: dto.name,
+    skill: dto.skill,
+    status: dto.status,
+    roundsPlayed: dto.roundsPlayed,
+  }
+}
+
+function mapCourt(dto) {
+  return {
+    id: dto.id,
+    name: dto.name,
+    teamA: dto.teamA.map(mapPlayer),
+    teamB: dto.teamB.map(mapPlayer),
+  }
+}
+
+function mapHistoryEntry(dto) {
+  return {
+    matchNo: dto.roundNumber,
+    court: {
+      id: dto.courtNumber,
+      name: dto.courtName,
+      teamA: dto.teamA,
+      teamB: dto.teamB,
+    },
+  }
+}
+
+function mapState(stateDto) {
+  const s = stateDto.session
+  const courts = stateDto.courts.map(mapCourt)
+  return {
+    players: stateDto.players.map(mapPlayer),
+    session: {
+      id: s.id,
+      screen: s.screen,
+      config: computeConfig(s.courts, s.maxRoundsPerPlayer, s.maxPlayers, s.fullRoundPrice, s.courtNames),
+      history: stateDto.history.map(mapHistoryEntry),
+      courts,
+    },
+    courts,
+  }
 }
 
 export function useAppState(uid) {
-  const SESSION_REF = useMemo(() => doc(db, 'users', uid, 'session', 'current'), [uid])
-  const PLAYERS_REF = useMemo(() => collection(db, 'users', uid, 'players'), [uid])
-
   const [players, setPlayers] = useState([])
   const [session, setSession] = useState(null)
+  const [courts, setCourts] = useState([])
   const [loading, setLoading] = useState(true)
 
+  const applyState = useCallback((stateDto) => {
+    const mapped = mapState(stateDto)
+    setPlayers(mapped.players)
+    setSession(mapped.session)
+    setCourts(mapped.courts)
+  }, [])
+
+  const refresh = useCallback(async () => {
+    const stateDto = await api.get(`/api/rotation-sessions/organizer/${uid}`)
+    applyState(stateDto)
+  }, [uid, applyState])
+
   useEffect(() => {
-    getDoc(SESSION_REF).then(snap => {
-      if (!snap.exists()) setDoc(SESSION_REF, DEFAULT_SESSION)
-    }).catch(console.error)
+    let cancelled = false
+    setLoading(true)
+    api.get(`/api/rotation-sessions/organizer/${uid}`)
+      .then(stateDto => {
+        if (!cancelled) { applyState(stateDto); setLoading(false) }
+      })
+      .catch(err => {
+        console.error('Rotation state error:', err)
+        if (!cancelled) setLoading(false)
+      })
+    return () => { cancelled = true }
+  }, [uid, applyState])
 
-    const unsubSession = onSnapshot(
-      SESSION_REF,
-      snap => {
-        setSession(snap.exists() ? snap.data() : DEFAULT_SESSION)
-        setLoading(false)
-      },
-      err => {
-        console.error('Firestore session error:', err)
-        setSession(DEFAULT_SESSION)
-        setLoading(false)
-      }
-    )
-
-    const unsubPlayers = onSnapshot(
-      PLAYERS_REF,
-      snap => setPlayers(snap.docs.map(d => ({ id: d.id, ...d.data() }))),
-      err => console.error('Firestore players error:', err)
-    )
-
-    return () => { unsubSession(); unsubPlayers() }
-  }, [SESSION_REF, PLAYERS_REF])
-
-  const updateConfig = async (courts, maxRoundsPerPlayer, maxPlayers, fullRoundPrice, courtNames = null) => {
-    await updateDoc(SESSION_REF, { config: computeConfig(courts, maxRoundsPerPlayer, maxPlayers, fullRoundPrice, courtNames) })
+  const updateConfig = async (courtsCount, maxRoundsPerPlayer, maxPlayers, fullRoundPrice, courtNames = null) => {
+    const computed = computeConfig(courtsCount, maxRoundsPerPlayer, maxPlayers, fullRoundPrice, courtNames)
+    const stateDto = await api.put(`/api/rotation-sessions/${session.id}`, {
+      courts: computed.courts,
+      maxRoundsPerPlayer: computed.maxRoundsPerPlayer,
+      maxPlayers: computed.maxPlayers,
+      fullRoundPrice: computed.fullRoundPrice,
+      courtNames: computed.courtNames,
+    })
+    applyState(stateDto)
   }
 
   const addPlayer = async (name, skill) => {
     if (players.some(p => p.name.toLowerCase() === name.toLowerCase())) return { error: 'duplicate' }
     const maxPlayers = session?.config?.maxPlayers ?? DEFAULT_CONFIG.maxPlayers
     if (players.length >= maxPlayers) return { error: 'max' }
-    const player = createPlayer(name, skill)
-    await setDoc(doc(PLAYERS_REF, player.id), {
-      name: player.name, skill: player.skill,
-      status: player.status, roundsPlayed: player.roundsPlayed,
-    })
+    const stateDto = await api.post('/api/rotation-players', { rotationSessionId: session.id, name, skill })
+    applyState(stateDto)
     return { success: true }
   }
 
@@ -71,106 +108,57 @@ export function useAppState(uid) {
       .filter(n => !existing.has(n.toLowerCase()))
       .slice(0, (session?.config?.maxPlayers ?? DEFAULT_CONFIG.maxPlayers) - players.length)
     if (toAdd.length === 0) return 0
-    const batch = writeBatch(db)
     for (const name of toAdd) {
-      const player = createPlayer(name, skill)
-      batch.set(doc(PLAYERS_REF, player.id), {
-        name: player.name, skill: player.skill,
-        status: player.status, roundsPlayed: player.roundsPlayed,
-      })
+      await api.post('/api/rotation-players', { rotationSessionId: session.id, name, skill })
     }
-    await batch.commit()
+    await refresh()
     return toAdd.length
   }
 
-  const removePlayer = async (id) => deleteDoc(doc(PLAYERS_REF, id))
+  const removePlayer = async (id) => {
+    await api.delete(`/api/rotation-players/${id}`)
+    await refresh()
+  }
 
-  const updatePlayerSkill = async (id, skill) => updateDoc(doc(PLAYERS_REF, id), { skill })
+  const updatePlayerSkill = async (id, skill) => {
+    const stateDto = await api.patch(`/api/rotation-players/${id}`, { skill })
+    applyState(stateDto)
+  }
 
   const togglePlayerStatus = async (id) => {
     const player = players.find(p => p.id === id)
     if (!player) return
     const status = player.status === STATUS.WAITING ? STATUS.BENCH : STATUS.WAITING
-    await updateDoc(doc(PLAYERS_REF, id), { status })
+    const stateDto = await api.patch(`/api/rotation-players/${id}/status`, { status })
+    applyState(stateDto)
   }
 
   const markAllBench = async () => {
     const waiting = players.filter(p => p.status === STATUS.WAITING)
     if (waiting.length === 0) return
-    const batch = writeBatch(db)
-    for (const p of waiting) {
-      batch.update(doc(PLAYERS_REF, p.id), { status: STATUS.BENCH })
-    }
-    await batch.commit()
+    const stateDto = await api.post(`/api/rotation-sessions/${session.id}/mark-all-bench`)
+    applyState(stateDto)
   }
 
   const startSession = async () => {
     if (!session) return
     const bench = players.filter(p => p.status === STATUS.BENCH)
     if (bench.length < 4) return
-    const { courts, playing } = generateRound(players, session.config.courts)
-    const batch = writeBatch(db)
-    for (const p of playing) {
-      batch.update(doc(PLAYERS_REF, p.id), { status: STATUS.PLAYING, roundsPlayed: p.roundsPlayed + 1 })
-    }
-    const courtNames = session.config.courtNames ?? []
-    batch.update(SESSION_REF, {
-      screen: 'session',
-      history: [],
-      courts: courts.map((c, i) => ({
-        id: c.id,
-        name: courtNames[i] ?? String(c.id),
-        teamA: c.teamA.map(p => p.id),
-        teamB: c.teamB.map(p => p.id),
-      })),
-    })
-    await batch.commit()
+    const stateDto = await api.post(`/api/rotation-sessions/${session.id}/start`)
+    applyState(stateDto)
   }
 
   const completeCourt = async (courtId) => {
     if (!session) return
-    const court = session.courts.find(c => c.id === courtId)
-    if (!court) return
-    const allIds = [...court.teamA, ...court.teamB]
-    const batch = writeBatch(db)
-    for (const id of allIds) {
-      const player = players.find(p => p.id === id)
-      if (!player) continue
-      const status = player.roundsPlayed >= session.config.maxRoundsPerPlayer ? STATUS.DONE : STATUS.BENCH
-      batch.update(doc(PLAYERS_REF, id), { status })
-    }
-    const matchEntry = {
-      matchNo: (session.history ?? []).length + 1,
-      court: {
-        id: courtId,
-        name: court.name ?? String(courtId),
-        teamA: court.teamA.map(id => { const p = players.find(pl => pl.id === id); return p ? { name: p.name, skill: p.skill } : null }).filter(Boolean),
-        teamB: court.teamB.map(id => { const p = players.find(pl => pl.id === id); return p ? { name: p.name, skill: p.skill } : null }).filter(Boolean),
-      },
-    }
-    const emptyingCourt = session.courts.find(c => c.id === courtId)
-    const newCourts = session.courts.map(c =>
-      c.id === courtId ? { id: courtId, name: emptyingCourt?.name ?? String(courtId), teamA: [], teamB: [] } : c
-    )
-    batch.update(SESSION_REF, { courts: newCourts, history: arrayUnion(matchEntry) })
-    await batch.commit()
+    const stateDto = await api.post(`/api/rotation-courts/${courtId}/complete`)
+    applyState(stateDto)
   }
 
   const refillCourt = async (courtId) => {
-    if (!session) return
     const bench = players.filter(p => p.status === STATUS.BENCH)
     if (bench.length < 4) return
-    const { courts: [newCourt], playing } = generateRound(bench, 1)
-    const existingCourt = session.courts.find(c => c.id === courtId)
-    const filledCourt = { id: courtId, name: existingCourt?.name ?? String(courtId), teamA: newCourt.teamA.map(p => p.id), teamB: newCourt.teamB.map(p => p.id) }
-    const batch = writeBatch(db)
-    for (const p of playing) {
-      batch.update(doc(PLAYERS_REF, p.id), { status: STATUS.PLAYING, roundsPlayed: p.roundsPlayed + 1 })
-    }
-    batch.update(SESSION_REF, {
-      courts: session.courts.map(c => c.id === courtId ? filledCourt : c),
-    })
-    await batch.commit()
+    const stateDto = await api.post(`/api/rotation-courts/${courtId}/refill`)
+    applyState(stateDto)
   }
 
   const fillEmptyCourts = async () => {
@@ -182,104 +170,54 @@ export function useAppState(uid) {
     const bench = players.filter(p => p.status === STATUS.BENCH)
     if (bench.length < 4) return
 
-    const { courts: newCourts, playing } = generateRound(bench, emptyCourts)
-    const configNames = session.config.courtNames ?? []
-    const renumbered = newCourts.map((c, i) => ({
-      ...c,
-      id: activeCourts + i + 1,
-      name: configNames[activeCourts + i] ?? String(activeCourts + i + 1),
-    }))
-
-    const batch = writeBatch(db)
-    for (const p of playing) {
-      batch.update(doc(PLAYERS_REF, p.id), { status: STATUS.PLAYING, roundsPlayed: p.roundsPlayed + 1 })
-    }
-    batch.update(SESSION_REF, {
-      courts: [
-        ...session.courts,
-        ...renumbered.map(c => ({ id: c.id, teamA: c.teamA.map(p => p.id), teamB: c.teamB.map(p => p.id) })),
-      ],
-    })
-    await batch.commit()
+    const stateDto = await api.post(`/api/rotation-sessions/${session.id}/fill-empty-courts`)
+    applyState(stateDto)
   }
 
   const markLeave = async (id) => {
     const player = players.find(p => p.id === id)
     if (!player) return
-    const batch = writeBatch(db)
-    batch.update(doc(PLAYERS_REF, id), { status: STATUS.LEAVE })
-    if (player.status === STATUS.PLAYING && session) {
-      const sub = findBestSub(players.filter(p => p.id !== id))
-      if (sub) {
-        batch.update(doc(PLAYERS_REF, sub.id), {
-          status: STATUS.PLAYING, roundsPlayed: sub.roundsPlayed + 1,
-        })
-        const newCourts = session.courts.map(c => ({
-          ...c,
-          teamA: c.teamA.map(pid => pid === id ? sub.id : pid),
-          teamB: c.teamB.map(pid => pid === id ? sub.id : pid),
-        }))
-        batch.update(SESSION_REF, { courts: newCourts })
-      } else {
-        const newCourts = session.courts.map(c => ({
-          ...c,
-          teamA: c.teamA.filter(pid => pid !== id),
-          teamB: c.teamB.filter(pid => pid !== id),
-        }))
-        batch.update(SESSION_REF, { courts: newCourts })
-      }
-    }
-    await batch.commit()
+    const stateDto = await api.post(`/api/rotation-players/${id}/leave`)
+    applyState(stateDto)
   }
 
   const addWalkIn = async (name, skill) => {
     if (players.some(p => p.name.toLowerCase() === name.toLowerCase())) return { error: 'duplicate' }
     const maxPlayers = session?.config?.maxPlayers ?? DEFAULT_CONFIG.maxPlayers
     if (players.length >= maxPlayers) return { error: 'max' }
-    const player = createPlayer(name, skill)
-    await setDoc(doc(PLAYERS_REF, player.id), {
-      name: player.name, skill: player.skill,
-      status: STATUS.BENCH, roundsPlayed: 0,
+    const stateDto = await api.post('/api/rotation-players', {
+      rotationSessionId: session.id, name, skill, status: STATUS.BENCH,
     })
+    applyState(stateDto)
     return { success: true }
   }
 
   const swapPlayers = async (courtPlayerId, benchPlayerId, courtId) => {
     const benchPlayer = players.find(p => p.id === benchPlayerId)
     if (!benchPlayer || !session) return
-    const batch = writeBatch(db)
-    batch.update(doc(PLAYERS_REF, courtPlayerId), { status: STATUS.BENCH })
-    batch.update(doc(PLAYERS_REF, benchPlayerId), { status: STATUS.PLAYING, roundsPlayed: benchPlayer.roundsPlayed + 1 })
-    const newCourts = session.courts.map(c => {
-      if (c.id !== courtId) return c
-      return {
-        ...c,
-        teamA: c.teamA.map(pid => pid === courtPlayerId ? benchPlayerId : pid),
-        teamB: c.teamB.map(pid => pid === courtPlayerId ? benchPlayerId : pid),
-      }
-    })
-    batch.update(SESSION_REF, { courts: newCourts })
-    await batch.commit()
+    const stateDto = await api.post(`/api/rotation-courts/${courtId}/swap`, { courtPlayerId, benchPlayerId })
+    applyState(stateDto)
   }
 
-  const activatePlayer = async (id) => updateDoc(doc(PLAYERS_REF, id), { status: STATUS.BENCH })
+  const activatePlayer = async (id) => {
+    const stateDto = await api.patch(`/api/rotation-players/${id}/status`, { status: STATUS.BENCH })
+    applyState(stateDto)
+  }
 
-  const volunteerMore = async (id) => updateDoc(doc(PLAYERS_REF, id), { status: STATUS.BENCH })
+  const volunteerMore = async (id) => {
+    const stateDto = await api.patch(`/api/rotation-players/${id}/status`, { status: STATUS.BENCH })
+    applyState(stateDto)
+  }
 
-  const endSession = async () => updateDoc(SESSION_REF, { screen: 'summary' })
+  const endSession = async () => {
+    const stateDto = await api.patch(`/api/rotation-sessions/${session.id}/screen`, { screen: 'summary' })
+    applyState(stateDto)
+  }
 
   const resetSession = async () => {
-    const batch = writeBatch(db)
-    for (const p of players) batch.delete(doc(PLAYERS_REF, p.id))
-    batch.set(SESSION_REF, DEFAULT_SESSION)
-    await batch.commit()
+    const stateDto = await api.post(`/api/rotation-sessions/${session.id}/reset`)
+    applyState(stateDto)
   }
-
-  const courts = session?.courts?.map(c => ({
-    ...c,
-    teamA: c.teamA.map(id => players.find(p => p.id === id)).filter(Boolean),
-    teamB: c.teamB.map(id => players.find(p => p.id === id)).filter(Boolean),
-  })) ?? []
 
   return {
     players, session, courts, loading,

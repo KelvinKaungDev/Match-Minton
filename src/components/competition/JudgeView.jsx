@@ -129,7 +129,7 @@ function GameHistory({ completedGames }) {
 
 export default function JudgeView() {
   const { code } = useParams()
-  const { courtData, matchState, loading, error, scorePoint, undoLastPoint } = useCompetitionScoring(code)
+  const { courtData, matchState, loading, error, scorePoint, undoLastPoint, canUndo } = useCompetitionScoring(code)
 
   if (loading) return <LoadingScreen />
   if (error) return <ErrorScreen error={error} />
@@ -138,7 +138,6 @@ export default function JudgeView() {
     courtName, courtNumber,
     teamA = [], teamB = [],
     scoreConfig = {},
-    pointLog = [],
   } = courtData
 
   const score = matchState?.currentScore ?? { teamA: 0, teamB: 0 }
@@ -218,7 +217,7 @@ export default function JudgeView() {
           teamB={teamB}
           onScore={scorePoint}
           onUndo={undoLastPoint}
-          canUndo={pointLog.length > 0}
+          canUndo={canUndo}
           disabled={isFinished}
         />
 

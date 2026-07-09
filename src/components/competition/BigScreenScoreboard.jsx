@@ -1,42 +1,53 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useParams } from 'react-router-dom'
-import { doc, collection, getDoc, onSnapshot } from 'firebase/firestore'
-import { db } from '../../services/firebase.js'
+import { api } from '../../services/apiClient.js'
+import { fetchCourtFull } from '../../hooks/useCompetition.js'
 
-// ── Firestore subscription ────────────────────────────────────────────────────
+const POLL_INTERVAL_MS = 3000
+
+// ── Backend polling ─────────────────────────────────────────────────────────
 
 function useScoreboardData(sessionId) {
   const [courts, setCourts] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)   // null | 'not-found' | 'error'
 
+  const refresh = useCallback(async () => {
+    try {
+      const session = await api.get(`/api/competition-sessions/${sessionId}`)
+      const scoreConfig = {
+        pointsToWin: session.pointsToWin,
+        numberOfGames: session.numberOfGames,
+        deuceRule: session.deuceRule,
+        maxPoints: session.maxPoints,
+      }
+      const rawCourts = await api.get(`/api/competition-courts/session/${sessionId}`)
+      const sorted = [...rawCourts].sort((a, b) => a.courtNumber - b.courtNumber)
+      const full = await Promise.all(sorted.map(c => fetchCourtFull(c, scoreConfig)))
+      setCourts(full)
+      setLoading(false)
+    } catch {
+      setError('error')
+      setLoading(false)
+    }
+  }, [sessionId])
+
   useEffect(() => {
     if (!sessionId) return
     let cancelled = false
-    let unsub = null
 
-    getDoc(doc(db, 'competitionSessions', sessionId))
-      .then(snap => {
-        if (cancelled) return
-        if (!snap.exists()) { setError('not-found'); setLoading(false); return }
-        unsub = onSnapshot(
-          collection(db, 'competitionSessions', sessionId, 'courts'),
-          snapshot => {
-            if (cancelled) return
-            setCourts(
-              snapshot.docs
-                .map(d => ({ id: d.id, ...d.data() }))
-                .sort((a, b) => a.courtNumber - b.courtNumber)
-            )
-            setLoading(false)
-          },
-          () => { if (!cancelled) { setError('error'); setLoading(false) } }
-        )
-      })
-      .catch(() => { if (!cancelled) { setError('error'); setLoading(false) } })
+    api.get(`/api/competition-sessions/${sessionId}`)
+      .then(() => { if (!cancelled) refresh() })
+      .catch(() => { if (!cancelled) { setError('not-found'); setLoading(false) } })
 
-    return () => { cancelled = true; unsub?.() }
-  }, [sessionId])
+    return () => { cancelled = true }
+  }, [sessionId, refresh])
+
+  useEffect(() => {
+    if (!sessionId || error) return
+    const id = setInterval(refresh, POLL_INTERVAL_MS)
+    return () => clearInterval(id)
+  }, [sessionId, error, refresh])
 
   return { courts, loading, error }
 }

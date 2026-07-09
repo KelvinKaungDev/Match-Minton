@@ -1,22 +1,25 @@
 import { useState, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { collectionGroup, query, where, getDocs, getDoc } from 'firebase/firestore'
-import { db } from '../../services/firebase.js'
+import { api } from '../../services/apiClient.js'
 
 // ── Status values ─────────────────────────────────────────────────────────────
 // idle | loading | invalid | expired
 
 async function lookupCode(code) {
-  const snap = await getDocs(
-    query(collectionGroup(db, 'courts'), where('code', '==', code))
-  )
-  if (snap.empty) return 'invalid'
+  let court
+  try {
+    court = await api.get(`/api/competition-courts/code/${code}`)
+  } catch {
+    return 'invalid'
+  }
 
-  const sessionRef = snap.docs[0].ref.parent.parent
-  const sessionSnap = await getDoc(sessionRef)
-
-  if (!sessionSnap.exists() || sessionSnap.data().status === 'ended') return 'expired'
-  return 'valid'
+  try {
+    const session = await api.get(`/api/competition-sessions/${court.sessionId}`)
+    if (session.status === 'finished') return 'expired'
+    return 'valid'
+  } catch {
+    return 'expired'
+  }
 }
 
 export default function JudgeEntry() {

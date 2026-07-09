@@ -4,6 +4,7 @@ import { useAuth } from '../../context/AuthContext.jsx'
 export default function AuthModal({ mode = 'login', onClose }) {
   const { login, signup } = useAuth()
   const [isLogin, setIsLogin] = useState(mode === 'login')
+  const [name, setName] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [confirm, setConfirm] = useState('')
@@ -28,11 +29,11 @@ export default function AuthModal({ mode = 'login', onClose }) {
       if (isLogin) {
         await login(email, password)
       } else {
-        await signup(email, password)
+        await signup(name, email, password)
       }
       onClose()
     } catch (err) {
-      setError(friendlyError(err.code))
+      setError(err.message || 'Something went wrong. Please try again')
     } finally {
       setLoading(false)
     }
@@ -41,6 +42,7 @@ export default function AuthModal({ mode = 'login', onClose }) {
   const switchMode = () => {
     setIsLogin(v => !v)
     setError('')
+    setName('')
     setPassword('')
     setConfirm('')
   }
@@ -64,6 +66,20 @@ export default function AuthModal({ mode = 'login', onClose }) {
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-3">
+          {!isLogin && (
+            <div>
+              <label className="text-stone-400 text-xs mb-1 block">Name</label>
+              <input
+                type="text"
+                value={name}
+                onChange={e => setName(e.target.value)}
+                required
+                placeholder="Your name"
+                className="w-full bg-stone-800 border border-stone-700 text-white rounded-lg px-3 py-2.5 text-sm placeholder-stone-600 focus:outline-none focus:border-[#34d399]"
+              />
+            </div>
+          )}
+
           <div>
             <label className="text-stone-400 text-xs mb-1 block">Email</label>
             <input
@@ -127,23 +143,4 @@ export default function AuthModal({ mode = 'login', onClose }) {
       </div>
     </div>
   )
-}
-
-function friendlyError(code) {
-  switch (code) {
-    case 'auth/user-not-found':
-    case 'auth/wrong-password':
-    case 'auth/invalid-credential':
-      return 'Incorrect email or password'
-    case 'auth/email-already-in-use':
-      return 'An account with this email already exists'
-    case 'auth/invalid-email':
-      return 'Invalid email address'
-    case 'auth/too-many-requests':
-      return 'Too many attempts. Please try again later'
-    case 'auth/operation-not-allowed':
-      return 'Email/password sign-in is not enabled. Contact the administrator'
-    default:
-      return 'Something went wrong. Please try again'
-  }
 }

@@ -1,6 +1,5 @@
-import { useState, useEffect, useCallback } from 'react'
-import { doc, collection, onSnapshot, writeBatch, updateDoc, serverTimestamp } from 'firebase/firestore'
-import { db } from '../services/firebase.js'
+import { useState, useEffect, useCallback, useRef } from 'react'
+import { api } from '../services/apiClient.js'
 import { useAuth } from '../context/AuthContext.jsx'
 
 export const DEFAULT_SCORE_CONFIG = {
@@ -9,6 +8,8 @@ export const DEFAULT_SCORE_CONFIG = {
   deuceRule: true,
   maxPoints: 30,
 }
+
+const POLL_INTERVAL_MS = 3000
 
 // Unambiguous chars — no 0/O, 1/I/L
 const CODE_CHARS = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'
@@ -21,6 +22,54 @@ function generateCourtCode(courtIndex) {
   return `${letter}${digit}${r1}${r2}`
 }
 
+function mapPlayer(p) {
+  return { id: p.id, name: p.name, skill: p.skill }
+}
+
+function mapCourtFull(court, players, games, scoreConfig) {
+  const teamA = players.filter(p => p.team === 'teamA').map(mapPlayer)
+  const teamB = players.filter(p => p.team === 'teamB').map(mapPlayer)
+  const sorted = [...games].sort((a, b) => a.gameNumber - b.gameNumber)
+  const completedGames = sorted
+    .filter(g => g.status === 'finished')
+    .map(g => ({ game: g.gameNumber, teamA: g.teamAScore, teamB: g.teamBScore, winner: g.winner }))
+  const gamesWon = { teamA: 0, teamB: 0 }
+  for (const g of completedGames) gamesWon[g.winner]++
+
+  const activeGame = sorted.find(g => g.status === 'active')
+  const lastGame = sorted[sorted.length - 1]
+  const currentScore = activeGame
+    ? { teamA: activeGame.teamAScore, teamB: activeGame.teamBScore }
+    : lastGame
+      ? { teamA: lastGame.teamAScore, teamB: lastGame.teamBScore }
+      : null
+  const currentGame = activeGame?.gameNumber ?? lastGame?.gameNumber ?? 1
+  const matchWinner = court.status === 'finished' ? court.winner : null
+
+  return {
+    id: court.id,
+    code: court.courtCode,
+    courtNumber: court.courtNumber,
+    courtName: String(court.courtNumber),
+    teamA, teamB,
+    scoreConfig,
+    currentScore,
+    currentGame,
+    gamesWon,
+    completedGames,
+    matchWinner,
+    matchStatus: matchWinner ? 'finished' : 'playing',
+  }
+}
+
+export async function fetchCourtFull(court, scoreConfig) {
+  const [players, games] = await Promise.all([
+    api.get(`/api/players/court/${court.id}`),
+    api.get(`/api/games/court/${court.id}`),
+  ])
+  return mapCourtFull(court, players, games, scoreConfig)
+}
+
 export function useCompetition() {
   const { user } = useAuth()
   const [config, setConfig] = useState(DEFAULT_SCORE_CONFIG)
@@ -29,18 +78,33 @@ export function useCompetition() {
   )
   const [activeCourts, setActiveCourts] = useState([])
   const [starting, setStarting] = useState(false)
+  const sessionConfigRef = useRef(DEFAULT_SCORE_CONFIG)
+
+  const refreshCourts = useCallback(async () => {
+    if (!activeSessionId) return
+    try {
+      const session = await api.get(`/api/competition-sessions/${activeSessionId}`)
+      sessionConfigRef.current = {
+        pointsToWin: session.pointsToWin,
+        numberOfGames: session.numberOfGames,
+        deuceRule: session.deuceRule,
+        maxPoints: session.maxPoints,
+      }
+      const courts = await api.get(`/api/competition-courts/session/${activeSessionId}`)
+      const sorted = [...courts].sort((a, b) => a.courtNumber - b.courtNumber)
+      const full = await Promise.all(sorted.map(c => fetchCourtFull(c, sessionConfigRef.current)))
+      setActiveCourts(full)
+    } catch (err) {
+      console.error('Competition refresh error:', err)
+    }
+  }, [activeSessionId])
 
   useEffect(() => {
     if (!activeSessionId) return
-    const courtsRef = collection(db, 'competitionSessions', activeSessionId, 'courts')
-    return onSnapshot(courtsRef, snap => {
-      setActiveCourts(
-        snap.docs
-          .map(d => ({ id: d.id, ...d.data() }))
-          .sort((a, b) => a.courtNumber - b.courtNumber)
-      )
-    })
-  }, [activeSessionId])
+    refreshCourts()
+    const id = setInterval(refreshCourts, POLL_INTERVAL_MS)
+    return () => clearInterval(id)
+  }, [activeSessionId, refreshCourts])
 
   const updateConfig = useCallback((field, value) => {
     setConfig(prev => ({ ...prev, [field]: value }))
@@ -50,35 +114,36 @@ export function useCompetition() {
     if (!user || courts.length === 0) return { success: false }
     setStarting(true)
     try {
-      const sessionId = `${user.uid}-${Date.now()}`
-      const batch = writeBatch(db)
-
-      batch.set(doc(db, 'competitionSessions', sessionId), {
-        uid: user.uid,
-        scoreConfig: config,
+      const session = await api.post('/api/competition-sessions', {
+        organizerId: user.uid,
+        name: `Session ${new Date().toLocaleString()}`,
+        status: 'active',
+        pointsToWin: config.pointsToWin,
+        numberOfGames: config.numberOfGames,
+        deuceRule: config.deuceRule,
+        maxPoints: config.maxPoints,
         courtCount: courts.length,
-        createdAt: serverTimestamp(),
       })
 
-      courts.forEach((court, index) => {
-        batch.set(
-          doc(db, 'competitionSessions', sessionId, 'courts', `court-${index + 1}`),
-          {
-            code: generateCourtCode(index),
-            courtNumber: index + 1,
-            courtName: court.name ?? String(index + 1),
-            teamA: court.teamA.map(p => ({ id: p.id, name: p.name, skill: p.skill })),
-            teamB: court.teamB.map(p => ({ id: p.id, name: p.name, skill: p.skill })),
-            scoreConfig: config,
-            createdAt: serverTimestamp(),
-          }
-        )
-      })
+      for (let i = 0; i < courts.length; i++) {
+        const court = courts[i]
+        const createdCourt = await api.post('/api/competition-courts', {
+          sessionId: session.id,
+          courtNumber: i + 1,
+          courtCode: generateCourtCode(i),
+          status: 'waiting',
+        })
+        for (const p of court.teamA) {
+          await api.post('/api/players', { courtId: createdCourt.id, name: p.name, team: 'teamA', skill: p.skill })
+        }
+        for (const p of court.teamB) {
+          await api.post('/api/players', { courtId: createdCourt.id, name: p.name, team: 'teamB', skill: p.skill })
+        }
+      }
 
-      await batch.commit()
-      localStorage.setItem('activeCompetitionSession', sessionId)
-      setActiveSessionId(sessionId)
-      return { success: true, sessionId }
+      localStorage.setItem('activeCompetitionSession', session.id)
+      setActiveSessionId(session.id)
+      return { success: true, sessionId: session.id }
     } finally {
       setStarting(false)
     }
@@ -86,46 +151,57 @@ export function useCompetition() {
 
   const syncCourts = async (sessionCourts) => {
     if (!user || !activeSessionId || sessionCourts.length === 0) return
-    const batch = writeBatch(db)
-    let newIndex = activeCourts.length
 
-    for (const sessionCourt of sessionCourts) {
-      const courtLabel = sessionCourt.name ?? String(sessionCourt.id)
-      const existing = activeCourts.find(
-        c => (c.courtName ?? String(c.courtNumber)) === courtLabel
-      )
+    for (let i = 0; i < sessionCourts.length; i++) {
+      const sessionCourt = sessionCourts[i]
+      const courtNumber = i + 1
+      const existing = activeCourts.find(c => c.courtNumber === courtNumber)
+
       if (existing) {
-        // Same court — keep code, reset scores, update teams
-        batch.update(doc(db, 'competitionSessions', activeSessionId, 'courts', existing.id), {
-          teamA: sessionCourt.teamA.map(p => ({ id: p.id, name: p.name, skill: p.skill })),
-          teamB: sessionCourt.teamB.map(p => ({ id: p.id, name: p.name, skill: p.skill })),
-          pointLog: [],
-          currentScore: { teamA: 0, teamB: 0 },
-          currentGame: 1,
-          completedGames: [],
-          gamesWon: { teamA: 0, teamB: 0 },
-          matchWinner: null,
+        // Same court slot — wipe games, replace roster, reset to waiting
+        const [oldPlayers, oldGames] = await Promise.all([
+          api.get(`/api/players/court/${existing.id}`),
+          api.get(`/api/games/court/${existing.id}`),
+        ])
+        await Promise.all([
+          ...oldPlayers.map(p => api.delete(`/api/players/${p.id}`)),
+          ...oldGames.map(g => api.delete(`/api/games/${g.id}`)),
+        ])
+        await api.put(`/api/competition-courts/${existing.id}`, {
+          sessionId: activeSessionId,
+          courtNumber,
+          courtCode: existing.code,
+          status: 'waiting',
+          winner: null,
         })
+        for (const p of sessionCourt.teamA) {
+          await api.post('/api/players', { courtId: existing.id, name: p.name, team: 'teamA', skill: p.skill })
+        }
+        for (const p of sessionCourt.teamB) {
+          await api.post('/api/players', { courtId: existing.id, name: p.name, team: 'teamB', skill: p.skill })
+        }
       } else {
-        // New court — generate fresh code
-        batch.set(doc(db, 'competitionSessions', activeSessionId, 'courts', `court-${newIndex + 1}-${Date.now()}`), {
-          code: generateCourtCode(newIndex),
-          courtNumber: newIndex + 1,
-          courtName: courtLabel,
-          teamA: sessionCourt.teamA.map(p => ({ id: p.id, name: p.name, skill: p.skill })),
-          teamB: sessionCourt.teamB.map(p => ({ id: p.id, name: p.name, skill: p.skill })),
-          scoreConfig: config,
-          createdAt: serverTimestamp(),
+        const createdCourt = await api.post('/api/competition-courts', {
+          sessionId: activeSessionId,
+          courtNumber,
+          courtCode: generateCourtCode(courtNumber - 1),
+          status: 'waiting',
         })
-        newIndex++
+        for (const p of sessionCourt.teamA) {
+          await api.post('/api/players', { courtId: createdCourt.id, name: p.name, team: 'teamA', skill: p.skill })
+        }
+        for (const p of sessionCourt.teamB) {
+          await api.post('/api/players', { courtId: createdCourt.id, name: p.name, team: 'teamB', skill: p.skill })
+        }
       }
     }
-    await batch.commit()
+
+    await refreshCourts()
   }
 
   const endCompetition = async () => {
     if (activeSessionId) {
-      await updateDoc(doc(db, 'competitionSessions', activeSessionId), { status: 'ended' })
+      await api.patch(`/api/competition-sessions/${activeSessionId}/finish`)
     }
     localStorage.removeItem('activeCompetitionSession')
     setActiveSessionId(null)

@@ -1,24 +1,48 @@
 import { createContext, useContext, useState, useEffect } from 'react'
-import {
-  onAuthStateChanged,
-  signInWithEmailAndPassword,
-  createUserWithEmailAndPassword,
-  signOut,
-} from 'firebase/auth'
-import { auth } from '../services/firebase.js'
+import { api, getToken, setToken } from '../services/apiClient.js'
 
 const AuthContext = createContext()
+const USER_KEY = 'mm_user'
+
+function readStoredUser() {
+  const raw = localStorage.getItem(USER_KEY)
+  if (!raw) return null
+  try {
+    return JSON.parse(raw)
+  } catch {
+    return null
+  }
+}
+
+function storeSession(authResponse) {
+  setToken(authResponse.token)
+  const user = { uid: authResponse.id, id: authResponse.id, name: authResponse.name, email: authResponse.email }
+  localStorage.setItem(USER_KEY, JSON.stringify(user))
+  return user
+}
 
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(undefined) // undefined = still loading
 
   useEffect(() => {
-    return onAuthStateChanged(auth, setUser)
+    setUser(getToken() ? readStoredUser() : null)
   }, [])
 
-  const login = (email, password) => signInWithEmailAndPassword(auth, email, password)
-  const signup = (email, password) => createUserWithEmailAndPassword(auth, email, password)
-  const logout = () => signOut(auth)
+  const login = async (email, password) => {
+    const res = await api.post('/api/auth/login', { email, password })
+    setUser(storeSession(res))
+  }
+
+  const signup = async (name, email, password) => {
+    const res = await api.post('/api/auth/register', { name, email, password })
+    setUser(storeSession(res))
+  }
+
+  const logout = () => {
+    setToken(null)
+    localStorage.removeItem(USER_KEY)
+    setUser(null)
+  }
 
   return (
     <AuthContext.Provider value={{ user, login, signup, logout }}>
