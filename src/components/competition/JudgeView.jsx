@@ -1,4 +1,5 @@
 import { Link, useParams } from 'react-router-dom'
+import { QRCode } from 'react-qr-code'
 import { useCompetitionScoring } from '../../hooks/useCompetitionScoring.js'
 import ScoreControl from './ScoreControl.jsx'
 
@@ -60,7 +61,8 @@ function ErrorScreen({ error }) {
 
 // ── Winner overlay ────────────────────────────────────────────────────────────
 
-function WinnerBanner({ matchState }) {
+function WinnerBanner({ matchState, courtId }) {
+  const resultUrl = `${window.location.origin}/result/${courtId}`
   const { matchWinner, gamesWon, completedGames } = matchState
   const isA = matchWinner === 'teamA'
   const winnerLabel = isA ? 'Team A' : 'Team B'
@@ -88,6 +90,11 @@ function WinnerBanner({ matchState }) {
           </div>
         ))}
       </div>
+
+      <div className="bg-white p-2 rounded-xl mb-2">
+        <QRCode value={resultUrl} size={112} level="M" />
+      </div>
+      <p className="text-stone-500 text-xs mb-6">Players: scan to get your result card</p>
 
       <Link
         to="/judge"
@@ -227,7 +234,7 @@ export default function JudgeView() {
       </div>
 
       {/* ── Winner overlay ── */}
-      {isFinished && <WinnerBanner matchState={matchState} />}
+      {isFinished && <WinnerBanner matchState={matchState} courtId={courtData.id} />}
 
     </div>
   )

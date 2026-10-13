@@ -9,6 +9,7 @@ import SessionScreen from './components/session/SessionScreen.jsx'
 import SummaryScreen from './components/summary/SummaryScreen.jsx'
 import JudgeEntry from './components/competition/JudgeEntry.jsx'
 import JudgeView from './components/competition/JudgeView.jsx'
+import ResultPage from './components/competition/ResultPage.jsx'
 import BigScreenScoreboard from './components/competition/BigScreenScoreboard.jsx'
 
 function AppContent() {
@@ -65,6 +66,7 @@ export default function App() {
     <Routes>
       <Route path="/judge" element={<JudgeEntry />} />
       <Route path="/judge/:code" element={<JudgeView />} />
+      <Route path="/result/:courtId" element={<ResultPage />} />
       <Route path="/scoreboard/:sessionId" element={<BigScreenScoreboard />} />
       <Route path="/*" element={<AuthGatedApp />} />
     </Routes>
